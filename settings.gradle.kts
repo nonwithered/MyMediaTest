@@ -21,4 +21,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "MyMediaTest"
 include(":app")
- 
+include(":ffmpeg")
