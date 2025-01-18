@@ -1,6 +1,7 @@
 package com.example.shared.utils
 
 import android.app.Activity
+import android.graphics.Rect
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -40,3 +41,36 @@ private class ViewCoroutineScope(view: View) : CoroutineScope {
 
 val View.isRtl: Boolean
     get() = layoutDirection == View.LAYOUT_DIRECTION_RTL
+
+fun interface OnLayoutChangeListenerAdapter {
+
+    fun onLayoutChange(v: View?, rect: Rect, oldRect: Rect)
+}
+
+fun View.addOnLayoutChangeListenerAdapter(listener: OnLayoutChangeListenerAdapter) {
+    addOnLayoutChangeListener { v: View?,
+                                left: Int,
+                                top: Int,
+                                right: Int,
+                                bottom: Int,
+                                oldLeft: Int,
+                                oldTop: Int,
+                                oldRight: Int,
+                                oldBottom: Int ->
+        listener.onLayoutChange(
+            v = v,
+            rect = Rect(
+                left,
+                top,
+                right,
+                bottom,
+            ),
+            oldRect = Rect(
+                oldLeft,
+                oldTop,
+                oldRight,
+                oldBottom,
+            )
+        )
+    }
+}

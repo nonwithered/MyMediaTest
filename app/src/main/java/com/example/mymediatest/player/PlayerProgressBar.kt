@@ -8,6 +8,7 @@ import android.widget.FrameLayout
 import android.widget.TextView
 import androidx.core.view.updateLayoutParams
 import com.example.mymediatest.R
+import com.example.shared.utils.addOnLayoutChangeListenerAdapter
 import com.example.shared.utils.coroutineScope
 import com.example.shared.utils.findView
 import com.example.shared.utils.inflate
@@ -54,9 +55,9 @@ class PlayerProgressBar(context: Context, attributeSet: AttributeSet) : FrameLay
                 refreshCursor()
             }
         }
-        addOnLayoutChangeListener { v, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom ->
+        addOnLayoutChangeListenerAdapter { _, rect, oldRect ->
             firstLayoutDone = true
-            if (left != oldLeft || right != oldRight) {
+            if (rect.left != oldRect.left || rect.right != oldRect.right) {
                 postOnAnimation {
                     refreshCursor()
                 }
