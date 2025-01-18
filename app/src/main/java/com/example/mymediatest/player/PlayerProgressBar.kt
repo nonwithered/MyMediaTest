@@ -11,6 +11,7 @@ import com.example.mymediatest.R
 import com.example.shared.utils.coroutineScope
 import com.example.shared.utils.findView
 import com.example.shared.utils.inflate
+import com.example.shared.utils.logD
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 import java.util.concurrent.TimeUnit
@@ -28,8 +29,9 @@ class PlayerProgressBar(context: Context, attributeSet: AttributeSet) : FrameLay
         inflate(R.layout.player_progress_bar, true)
     }
 
-    val timestampCurrentState = MutableStateFlow(0L)
-    val timestampTotalState = MutableStateFlow(0L)
+    val currentPosition = MutableStateFlow(0L)
+    val duration = MutableStateFlow(0L)
+    val isSeekDraging = MutableStateFlow(false)
 
     private val timestampCurrentTextView: TextView = findView(R.id.timestamp_current)!!
     private val timestampTotalTextView: TextView = findView(R.id.timestamp_total)!!
@@ -40,13 +42,14 @@ class PlayerProgressBar(context: Context, attributeSet: AttributeSet) : FrameLay
 
     init {
         coroutineScope.launch {
-            timestampCurrentState.collect {
+            currentPosition.collect {
+                TAG.logD { "currentPosition $it" }
                 timestampCurrentTextView.text = it.convertText()
                 refreshCursor()
             }
         }
         coroutineScope.launch {
-            timestampTotalState.collect {
+            duration.collect {
                 timestampTotalTextView.text = it.convertText()
                 refreshCursor()
             }
@@ -62,12 +65,21 @@ class PlayerProgressBar(context: Context, attributeSet: AttributeSet) : FrameLay
         isClickable = true
         setOnTouchListener { v, event ->
             when (event.action) {
-                MotionEvent.ACTION_MOVE, MotionEvent.ACTION_UP -> {
-                    val consume = detectSlide(event.x.roundToInt())
-                    if (!consume && event.action == MotionEvent.ACTION_UP) {
-                        performClick()
-                    }
-                    consume
+                MotionEvent.ACTION_DOWN,
+                MotionEvent.ACTION_MOVE -> {
+                    detectSlide(event.x.roundToInt())?.also { current ->
+                        isSeekDraging.value = true
+                        currentPosition.value = current
+                    } !== null
+                }
+                MotionEvent.ACTION_UP -> {
+                    performClick()
+                    isSeekDraging.value = false
+                    true
+                }
+                MotionEvent.ACTION_CANCEL -> {
+                    isSeekDraging.value = false
+                    false
                 }
                 else -> {
                     false
@@ -76,12 +88,12 @@ class PlayerProgressBar(context: Context, attributeSet: AttributeSet) : FrameLay
         }
     }
 
-    private fun detectSlide(x: Int): Boolean {
+    private fun detectSlide(x: Int): Long? {
         if (!firstLayoutDone) {
-            return false
+            return null
         }
         if (x !in progressLine.left..progressLine.right) {
-            return false
+            return null
         }
         val offset = x - (progressLine.left + progressCursor.width / 2)
         val max = progressLine.width - progressCursor.width
@@ -89,10 +101,9 @@ class PlayerProgressBar(context: Context, attributeSet: AttributeSet) : FrameLay
         val current = if (fraction.isNaN() || fraction.isInfinite()) {
             0
         } else {
-            (fraction * timestampTotalState.value).roundToLong().coerceIn(0, timestampTotalState.value)
+            (fraction * duration.value).roundToLong().coerceIn(0, duration.value)
         }
-        timestampCurrentState.value = current
-        return true
+        return current
     }
 
     private fun refreshCursor() {
@@ -100,7 +111,7 @@ class PlayerProgressBar(context: Context, attributeSet: AttributeSet) : FrameLay
             return
         }
         val max = progressLine.width - progressCursor.width
-        val fraction = timestampCurrentState.value.toDouble() / timestampTotalState.value.toDouble()
+        val fraction = currentPosition.value.toDouble() / duration.value.toDouble()
         val current = if (fraction.isNaN() || fraction.isInfinite()) {
             0
         } else {
@@ -112,11 +123,11 @@ class PlayerProgressBar(context: Context, attributeSet: AttributeSet) : FrameLay
     }
 
     private fun Long.convertText(): String {
-        val duration = coerceAtLeast(0)
+        val ms = coerceAtLeast(0)
         val unit = TimeUnit.MILLISECONDS
-        val hour = unit.toHours(duration)
-        val minute = unit.toMinutes(duration) - TimeUnit.HOURS.toMinutes(hour)
-        val second = unit.toSeconds(duration) - TimeUnit.HOURS.toSeconds(hour) - TimeUnit.MINUTES.toSeconds(minute)
+        val hour = unit.toHours(ms)
+        val minute = unit.toMinutes(ms) - TimeUnit.HOURS.toMinutes(hour)
+        val second = unit.toSeconds(ms) - TimeUnit.HOURS.toSeconds(hour) - TimeUnit.MINUTES.toSeconds(minute)
         return listOf(hour, minute, second).joinToString(":") {
             it.convertString()
         }

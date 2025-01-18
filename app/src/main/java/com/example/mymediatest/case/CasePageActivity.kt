@@ -6,7 +6,7 @@ import android.os.Bundle
 import com.example.mymediatest.R
 import com.example.shared.page.BaseActivity
 import com.example.shared.utils.elseTrue
-import com.example.shared.utils.logD
+import com.example.shared.utils.logI
 
 class CasePageActivity : BaseActivity() {
 
@@ -24,7 +24,7 @@ class CasePageActivity : BaseActivity() {
 
     private val pageData by lazy {
         CasePageData(intent.extras).also { pageData ->
-            TAG.logD { "update pageData ${pageData.pageName}" }
+            TAG.logI { "update pageData ${pageData.pageName}" }
         }
     }
 

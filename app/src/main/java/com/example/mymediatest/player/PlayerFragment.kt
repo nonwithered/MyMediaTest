@@ -5,16 +5,29 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.view.ViewStub
-import android.widget.FrameLayout
-import android.widget.ImageView
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.LayoutRes
+import androidx.lifecycle.lifecycleScope
 import com.example.mymediatest.R
 import com.example.shared.page.BaseFragment
 import com.example.shared.utils.bind
+import com.example.shared.utils.connect
+import com.example.shared.utils.dispose
 import com.example.shared.utils.findView
+import com.example.shared.utils.logI
 import com.example.shared.utils.viewModel
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 abstract class PlayerFragment<T : View> : BaseFragment() {
+
+    private companion object {
+
+        private const val TAG = "PlayerFragment"
+
+        private const val PROGRESS_BAR_REFRESH_INTERVAL = 500L
+    }
 
     @get:LayoutRes
     protected open val playerLayoutId: Int
@@ -38,6 +51,19 @@ abstract class PlayerFragment<T : View> : BaseFragment() {
         view?.findView<View>(R.id.player_load)!!
     }
 
+    private val playerProgressBar by lazy {
+        view?.findView<PlayerProgressBar>(R.id.player_progress_bar)!!
+    }
+
+    private var refreshProgressDispose: (() -> Unit)? = null
+
+    private val launcherGetContent = registerForActivityResult(ActivityResultContracts.GetContent()) {
+        TAG.logI { "GetContent $it" }
+        playerVM.contentUri.value = it
+    }.let {
+        { it.launch("video/*") }
+    }
+
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
@@ -55,13 +81,40 @@ abstract class PlayerFragment<T : View> : BaseFragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         bind(playerVM.state) {
+            TAG.logI { "state $it" }
             val image = when (it) {
                 PlayerState.PLAYING -> R.drawable.player_pause
                 PlayerState.PAUSED -> R.drawable.player_start
                 PlayerState.IDLE -> R.drawable.player_idle
             }
             playerState.setBackgroundResource(image)
+            when (it) {
+                PlayerState.PLAYING -> {
+                    refreshProgressDispose = lifecycleScope.launch {
+                        try {
+                            while (true) {
+                                playerVM.currentPosition.value = currentPosition
+                                delay(PROGRESS_BAR_REFRESH_INTERVAL)
+                            }
+                        } catch (e: CancellationException) {
+                            refreshProgressDispose = null
+                            throw e
+                        }
+                    }::dispose
+                }
+                PlayerState.PAUSED -> {
+                    refreshProgressDispose?.invoke()
+                }
+                PlayerState.IDLE -> {
+                    playerVM.currentPosition.value = 0
+                    playerVM.duration.value = 0
+                    refreshProgressDispose?.invoke()
+                }
+            }
         }
+        connect(playerProgressBar.duration, playerVM.duration)
+        connect(playerProgressBar.currentPosition, playerVM.currentPosition)
+        bind(playerProgressBar.isSeekDraging, playerVM.isSeekDraging)
         playerState.setOnClickListener {
             when (playerVM.state.value) {
                 PlayerState.PLAYING -> playerVM.state.value = PlayerState.PAUSED
@@ -69,5 +122,11 @@ abstract class PlayerFragment<T : View> : BaseFragment() {
                 PlayerState.IDLE -> {}
             }
         }
+        playerLoad.setOnClickListener {
+            launcherGetContent()
+        }
     }
+
+    protected open val currentPosition: Long
+        get() = 0
 }

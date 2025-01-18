@@ -5,15 +5,22 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
-    <ViewStub
-        android:id="@+id/player_stub"
-        android:inflatedId="@+id/player_view"
+    <FrameLayout
         android:layout_width="0dp"
         android:layout_height="0dp"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintBottom_toTopOf="@+id/player_progress" />
+        app:layout_constraintBottom_toTopOf="@+id/player_progress_bar">
+
+        <ViewStub
+            android:id="@+id/player_stub"
+            android:inflatedId="@+id/player_view"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_gravity="center" />
+
+    </FrameLayout>
 
     <View
         android:id="@+id/player_state"
@@ -32,7 +39,7 @@
         app:layout_constraintBottom_toBottomOf="parent" />
 
     <com.example.mymediatest.player.PlayerProgressBar
-        android:id="@+id/player_progress"
+        android:id="@+id/player_progress_bar"
         android:layout_width="0dp"
         android:layout_height="@dimen/player_action_btn_size"
         app:layout_constraintStart_toEndOf="@+id/player_state"
