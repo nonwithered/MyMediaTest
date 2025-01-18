@@ -36,4 +36,4 @@ target_link_libraries(${CMAKE_PROJECT_NAME}
         android
         log)
 
-include_directories(${CMAKE_SOURCE_DIR}/../../../../shared/include)
+include_directories(${CMAKE_SOURCE_DIR}/../../../../shared_include)
