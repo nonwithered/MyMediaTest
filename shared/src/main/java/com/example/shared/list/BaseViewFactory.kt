@@ -5,9 +5,8 @@ import androidx.annotation.LayoutRes
 
 interface BaseViewFactory<in T, out VH: BaseViewHolder<T>> {
 
+    @get:LayoutRes
     val layoutId: Int
-        @LayoutRes
-        get
 
     fun checkItemType(item: T): Boolean
 

@@ -13,7 +13,4 @@ object FFmpeg  {
     }
 
     external fun registerNatives()
-
-    external fun foo(): Int
-    external fun bar(): Int
 }

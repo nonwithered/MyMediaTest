@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <ViewStub
+        android:id="@+id/player_stub"
+        android:inflatedId="@+id/player_view"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toTopOf="@+id/player_progress" />
+
+    <View
+        android:id="@+id/player_state"
+        android:layout_width="@dimen/player_action_btn_size"
+        android:layout_height="@dimen/player_action_btn_size"
+        android:background="@drawable/player_idle"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent" />
+
+    <View
+        android:id="@+id/player_load"
+        android:layout_width="@dimen/player_action_btn_size"
+        android:layout_height="@dimen/player_action_btn_size"
+        android:background="@drawable/player_load"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent" />
+
+    <com.example.mymediatest.player.PlayerProgressBar
+        android:id="@+id/player_progress"
+        android:layout_width="0dp"
+        android:layout_height="@dimen/player_action_btn_size"
+        app:layout_constraintStart_toEndOf="@+id/player_state"
+        app:layout_constraintEnd_toStartOf="@+id/player_load"
+        app:layout_constraintBottom_toBottomOf="parent" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>

@@ -49,8 +49,6 @@ dependencies {
     implementation(libs.androidx.appcompat)
     implementation(libs.material)
     implementation(libs.androidx.constraintlayout)
-    implementation(libs.auto.service)
-    kapt(libs.auto.service)
 
     implementation(project(":ffmpeg"))
     implementation(project(":shared"))

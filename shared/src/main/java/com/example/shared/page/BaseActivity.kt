@@ -11,8 +11,9 @@ abstract class BaseActivity : AppCompatActivity() {
     protected val context: Context
         get() = this
 
+    @get:LayoutRes
     protected open val layoutId: Int
-        @LayoutRes get() = 0
+        get() = 0
 
     protected open fun createView(): View? = null
 

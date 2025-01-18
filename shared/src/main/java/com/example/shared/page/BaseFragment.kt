@@ -9,8 +9,8 @@ import androidx.fragment.app.Fragment
 
 abstract class BaseFragment : Fragment() {
 
+    @get:LayoutRes
     protected open val layoutId: Int
-        @LayoutRes
         get() = 0
 
     override fun onCreateView(

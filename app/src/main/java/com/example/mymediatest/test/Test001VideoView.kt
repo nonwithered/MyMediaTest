@@ -1,15 +1,12 @@
 package com.example.mymediatest.test
 
+import android.widget.VideoView
 import com.example.mymediatest.case.CaseItem
-import com.example.shared.page.BaseFragment
-import com.google.auto.service.AutoService
+import com.example.mymediatest.player.PlayerFragment
 
-@AutoService(CaseItem::class)
-class Test001VideoView : CaseItem {
+object Test001VideoView : CaseItem {
 
     override val fragmentClass = Page::class
 
-    class Page : BaseFragment() {
-
-    }
+    class Page : PlayerFragment<VideoView>()
 }
