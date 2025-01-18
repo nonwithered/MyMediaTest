@@ -7,10 +7,10 @@
 #include "util_jni_ref.h"
 #include "util_string.h"
 
-#define NATIVE_METHOD(className, functionName, signature) \
+#define NATIVE_METHOD(className, functionName, sign) \
 JNINativeMethod { \
     .name = #functionName, \
-    .signature = signature, \
+    .signature = sign, \
     .fnPtr = (void *) (className ## _ ## functionName), \
 }
 

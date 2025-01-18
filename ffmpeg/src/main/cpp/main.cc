@@ -1,10 +1,19 @@
 #include <jni.h>
 #include <string>
 
-extern "C" JNIEXPORT jstring JNICALL
-Java_com_example_ffmpeg_LibFFmpeg_stringFromJNI(
-        JNIEnv* env,
-        jobject /* this */) {
-    std::string hello = "Hello from C++";
-    return env->NewStringUTF(hello.c_str());
+#include <util_jni.h>
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_example_ffmpeg_LibFFmpeg_registerNatives(
+    JNIEnv* env,
+    jobject /* this */
+) {
+    JNINativeMethod gMethods[] = {
+    };
+    PKG_NS::RegisterNativeMethods(
+            *env,
+            "com/example/ffmpeg/LibFFmpeg",
+            gMethods,
+            sizeof(gMethods) / sizeof(JNINativeMethod)
+    );
 }
