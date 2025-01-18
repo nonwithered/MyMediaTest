@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">MyMediaTest</string>
+    <string name="case_list">My Case List</string>
+    <string name="case_page">My Case</string>
 </resources>

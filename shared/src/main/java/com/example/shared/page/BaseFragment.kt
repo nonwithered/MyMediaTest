@@ -13,17 +13,12 @@ abstract class BaseFragment : Fragment() {
         @LayoutRes
         get() = 0
 
-    protected open fun createView(
-        inflater: LayoutInflater,
-        container: ViewGroup?,
-    ): View = inflater.inflate(layoutId, container, false)
-
-    final override fun onCreateView(
+    override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
         savedInstanceState: Bundle?,
     ): View {
-        return createView(inflater, container)
+        return inflater.inflate(layoutId, container, false)
     }
 
     override fun onViewCreated(
