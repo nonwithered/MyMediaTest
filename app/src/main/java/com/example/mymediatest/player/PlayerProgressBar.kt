@@ -19,12 +19,17 @@ import kotlin.math.roundToLong
 
 class PlayerProgressBar(context: Context, attributeSet: AttributeSet) : FrameLayout(context, attributeSet) {
 
+    private companion object {
+
+        private const val TAG = "PlayerProgressBar"
+    }
+
     init {
         inflate(R.layout.player_progress_bar, true)
     }
 
     val timestampCurrentState = MutableStateFlow(0L)
-    val timestampTotalState = MutableStateFlow(100L)
+    val timestampTotalState = MutableStateFlow(0L)
 
     private val timestampCurrentTextView: TextView = findView(R.id.timestamp_current)!!
     private val timestampTotalTextView: TextView = findView(R.id.timestamp_total)!!
@@ -48,10 +53,13 @@ class PlayerProgressBar(context: Context, attributeSet: AttributeSet) : FrameLay
         }
         addOnLayoutChangeListener { v, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom ->
             firstLayoutDone = true
-            postOnAnimation {
-                refreshCursor()
+            if (left != oldLeft || right != oldRight) {
+                postOnAnimation {
+                    refreshCursor()
+                }
             }
         }
+        isClickable = true
         setOnTouchListener { v, event ->
             when (event.action) {
                 MotionEvent.ACTION_MOVE, MotionEvent.ACTION_UP -> {
@@ -109,12 +117,8 @@ class PlayerProgressBar(context: Context, attributeSet: AttributeSet) : FrameLay
         val hour = unit.toHours(duration)
         val minute = unit.toMinutes(duration) - TimeUnit.HOURS.toMinutes(hour)
         val second = unit.toSeconds(duration) - TimeUnit.HOURS.toSeconds(hour) - TimeUnit.MINUTES.toSeconds(minute)
-        return if (hour <= 0) {
-            listOf(minute, second)
-        } else {
-            listOf(hour, minute, second)
-        }.joinToString(":") {
-            convertString()
+        return listOf(hour, minute, second).joinToString(":") {
+            it.convertString()
         }
     }
 
