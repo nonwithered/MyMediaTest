@@ -25,7 +25,9 @@ class CasePageData(
 
     var pageName: String? by "pageName".property()
 
-    var showActionBar: Boolean? by "showActionBar".property()
+    var hideActionBar: Boolean? by "hideActionBar".property()
+
+    var hideSystemUI: Boolean? by "hideSystemUI".property()
 
     var extras: Bundle? by "extras".property()
 }

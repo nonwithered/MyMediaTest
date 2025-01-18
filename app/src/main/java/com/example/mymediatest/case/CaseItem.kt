@@ -11,8 +11,11 @@ interface CaseItem {
     val pageName: String
         get() = fragmentClass.java.simpleName
 
-    val showActionBar: Boolean
-        get() = false
+    val hideActionBar: Boolean
+        get() = true
+
+    val hideSystemUI: Boolean
+        get() = true
 
     val extras: Bundle?
         get() = null

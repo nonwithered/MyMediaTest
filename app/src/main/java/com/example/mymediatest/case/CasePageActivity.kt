@@ -3,9 +3,10 @@ package com.example.mymediatest.case
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
+import android.view.WindowInsets
 import com.example.mymediatest.R
 import com.example.shared.page.BaseActivity
-import com.example.shared.utils.elseTrue
+import com.example.shared.utils.elseFalse
 import com.example.shared.utils.logI
 
 class CasePageActivity : BaseActivity() {
@@ -35,6 +36,7 @@ class CasePageActivity : BaseActivity() {
         super.onViewCreated(savedInstanceState)
         initFragment()
         initActionBar()
+        initSystemUI()
     }
 
     private fun initFragment() {
@@ -58,8 +60,16 @@ class CasePageActivity : BaseActivity() {
 
     private fun initActionBar() {
         supportActionBar?.title = pageData.pageName
-        if (!pageData.showActionBar.elseTrue) {
+        if (pageData.hideActionBar.elseFalse) {
             supportActionBar?.hide()
+            TAG.logI { "hideActionBar" }
+        }
+    }
+
+    private fun initSystemUI() {
+        if (pageData.hideSystemUI.elseFalse) {
+            window.insetsController?.hide(WindowInsets.Type.systemBars())
+            TAG.logI { "hideSystemUI" }
         }
     }
 }

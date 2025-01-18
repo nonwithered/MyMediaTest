@@ -17,7 +17,8 @@ class CaseViewHolder(itemView: View) : BaseViewHolder<CaseItem>(itemView) {
             val pageData = CasePageData()
             pageData.pageName = item.pageName
             pageData.fragmentClass = item.fragmentClass.java
-            pageData.showActionBar = item.showActionBar
+            pageData.hideActionBar = item.hideActionBar
+            pageData.hideSystemUI = item.hideSystemUI
             pageData.extras = item.extras
             CasePageActivity.start(context, pageData)
         }

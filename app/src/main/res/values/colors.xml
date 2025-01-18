@@ -10,5 +10,6 @@
 
     <color name="player_progress_bar_line">#FF0000FF</color>
     <color name="player_progress_bar_cursor">#FFFF0000</color>
+    <color name="player_action_icon">#FF0000FF</color>
 
 </resources>

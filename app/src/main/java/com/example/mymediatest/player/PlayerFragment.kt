@@ -55,6 +55,14 @@ abstract class PlayerFragment<T : View> : BaseFragment() {
         view?.findView<PlayerProgressBar>(R.id.player_progress_bar)!!
     }
 
+    private val playerContainer by lazy {
+        view?.findView<View>(R.id.player_container)!!
+    }
+
+    private val actionContainer by lazy {
+        view?.findView<View>(R.id.action_container)!!
+    }
+
     private var refreshProgressDispose: (() -> Unit)? = null
 
     private val launcherGetContent = registerForActivityResult(ActivityResultContracts.GetContent()) {
@@ -106,6 +114,7 @@ abstract class PlayerFragment<T : View> : BaseFragment() {
                     refreshProgressDispose?.invoke()
                 }
                 PlayerState.IDLE -> {
+                    actionContainer.visibility = View.VISIBLE
                     playerVM.currentPosition.value = 0
                     playerVM.duration.value = 0
                     refreshProgressDispose?.invoke()
@@ -124,6 +133,12 @@ abstract class PlayerFragment<T : View> : BaseFragment() {
         }
         playerLoad.setOnClickListener {
             launcherGetContent()
+        }
+        playerContainer.setOnClickListener {
+            actionContainer.visibility = when (actionContainer.visibility) {
+                View.VISIBLE -> View.INVISIBLE
+                else -> View.VISIBLE
+            }
         }
     }
 
