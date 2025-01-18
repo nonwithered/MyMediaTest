@@ -37,3 +37,6 @@ private class ViewCoroutineScope(view: View) : CoroutineScope {
         }
     }
 }
+
+val View.isRtl: Boolean
+    get() = layoutDirection == View.LAYOUT_DIRECTION_RTL
