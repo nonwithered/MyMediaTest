@@ -1,4 +1,4 @@
-package com.example.shared.view
+package com.example.shared.view.scroll
 
 import android.view.View
 import androidx.core.view.NestedScrollingChildHelper
