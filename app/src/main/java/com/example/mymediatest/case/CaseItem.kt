@@ -9,12 +9,11 @@ interface CaseItem {
     val fragmentClass: KClass<out Fragment>
 
     val pageName: String
-        get() = javaClass.simpleName
+        get() = fragmentClass.java.simpleName
 
     val showActionBar: Boolean
-        get() = true
+        get() = false
 
     val extras: Bundle?
         get() = null
 }
-
