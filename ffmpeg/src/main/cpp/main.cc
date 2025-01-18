@@ -4,7 +4,7 @@
 #include <util_jni.h>
 
 extern "C" JNIEXPORT void JNICALL
-Java_com_example_ffmpeg_LibFFmpeg_registerNatives(
+Java_com_example_ffmpeg_FFmpeg_registerNatives(
     JNIEnv* env,
     jobject /* this */
 ) {
@@ -12,7 +12,7 @@ Java_com_example_ffmpeg_LibFFmpeg_registerNatives(
     };
     PKG_NS::RegisterNativeMethods(
             *env,
-            "com/example/ffmpeg/LibFFmpeg",
+            "com/example/ffmpeg/FFmpeg",
             gMethods,
             sizeof(gMethods) / sizeof(JNINativeMethod)
     );

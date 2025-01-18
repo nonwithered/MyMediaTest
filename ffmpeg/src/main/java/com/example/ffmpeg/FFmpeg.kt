@@ -3,7 +3,7 @@ package com.example.ffmpeg
 import androidx.annotation.Keep
 
 @Keep
-object LibFFmpeg  {
+object FFmpeg  {
 
     init {
         System.loadLibrary("ffmpeg")
