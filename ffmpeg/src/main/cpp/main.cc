@@ -1,7 +1,7 @@
 #include <jni.h>
 #include <string>
 
-#include "../../../../shared_include/util_jni.h"
+#include "../../../../shared/include/util_jni.h"
 
 extern "C" JNIEXPORT void JNICALL
 Java_com_example_ffmpeg_FFmpeg_registerNatives(
