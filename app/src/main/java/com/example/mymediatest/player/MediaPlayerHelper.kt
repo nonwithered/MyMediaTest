@@ -201,10 +201,6 @@ class MediaPlayerHelper(
         release(false)
     }
 
-    fun resume() {
-        openVideo()
-    }
-
     override fun start() {
         if (isInPlaybackState) {
             mediaPlayer?.start()

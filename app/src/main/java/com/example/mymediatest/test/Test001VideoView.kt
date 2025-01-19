@@ -39,6 +39,7 @@ class Test001VideoView : PlayerFragment<VideoView>() {
         }
         playerView.setOnPreparedListener {
             playerVM.state.value = PlayerState.PAUSED
+            playerVM.currentPosition.value = 0
             playerVM.duration.value = playerView.duration.coerceAtLeast(0).toLong()
         }
         playerView.setOnCompletionListener {

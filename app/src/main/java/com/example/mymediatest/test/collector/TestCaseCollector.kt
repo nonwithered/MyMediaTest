@@ -12,6 +12,7 @@ class TestCaseCollector : CaseCollector {
 
     override val items = listOf(
         Test001VideoView::class,
+        Test002VideoSurfaceView::class,
     ).map {
         it.asCaseItem
     }
