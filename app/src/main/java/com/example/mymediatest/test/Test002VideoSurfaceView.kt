@@ -4,14 +4,11 @@ import android.os.Bundle
 import android.view.View
 import com.example.mymediatest.R
 import com.example.mymediatest.player.MediaPlayerHelper
-import com.example.mymediatest.player.VideoSurfaceView
 import com.example.mymediatest.test.base.PlayerFragment
 import com.example.mymediatest.test.base.PlayerState
-import com.example.shared.utils.autoCoroutineScope
 import com.example.shared.utils.bind
-import com.example.shared.utils.launchCoroutineScope
 
-class Test002VideoSurfaceView : PlayerFragment<VideoSurfaceView>() {
+open class Test002VideoSurfaceView : PlayerFragment<MediaPlayerHelper.MediaPlayerHelperHolder>() {
 
     override val playerLayoutId: Int
         get() = R.layout.test_002_video_surface_view
@@ -40,19 +37,18 @@ class Test002VideoSurfaceView : PlayerFragment<VideoSurfaceView>() {
                 playerView.helper.seekTo(it.toInt())
             }
         }
-        playerView.autoCoroutineScope.launchCoroutineScope {
-            playerView.helper.currentState.launchCollect {
-                when (it) {
-                    MediaPlayerHelper.State.PREPARED -> {
-                        playerVM.state.value = PlayerState.PAUSED
-                        playerVM.currentPosition.value = 0
-                        playerVM.duration.value = playerView.helper.duration.coerceAtLeast(0).toLong()
-                    }
-                    MediaPlayerHelper.State.PLAYBACK_COMPLETED -> {
-                        playerVM.state.value = PlayerState.PAUSED
-                    }
-                    else -> {
-                    }
+        bind(playerView.helper.currentState) {
+            when (it) {
+                MediaPlayerHelper.State.PREPARED -> {
+                    playerVM.state.value = PlayerState.PAUSED
+                    playerVM.currentPosition.value = 0
+                    playerVM.duration.value = playerView.helper.duration.coerceAtLeast(0).toLong()
+                }
+                MediaPlayerHelper.State.PLAYBACK_COMPLETED -> {
+                    playerVM.state.value = PlayerState.PAUSED
+                    playerVM.currentPosition.value = 0
+                }
+                else -> {
                 }
             }
         }

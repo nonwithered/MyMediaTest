@@ -44,6 +44,7 @@ class Test001VideoView : PlayerFragment<VideoView>() {
         }
         playerView.setOnCompletionListener {
             playerVM.state.value = PlayerState.PAUSED
+            playerVM.currentPosition.value = 0
         }
     }
 

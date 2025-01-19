@@ -31,6 +31,11 @@ class MediaPlayerHelper(
     MediaPlayer.OnInfoListener,
     MediaPlayer.OnBufferingUpdateListener {
 
+    interface MediaPlayerHelperHolder {
+
+        val helper: MediaPlayerHelper
+    }
+
     enum class State {
         ERROR,
         IDLE,

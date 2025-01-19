@@ -14,9 +14,10 @@ class VideoSurfaceView(
 ) : SurfaceView(
     context,
     attributeSet
-), SurfaceHolder.Callback2 {
+), SurfaceHolder.Callback2,
+    MediaPlayerHelper.MediaPlayerHelperHolder {
 
-    val helper = MediaPlayerHelper(context)
+    override val helper = MediaPlayerHelper(context)
 
     init {
         holder.addCallback(this)

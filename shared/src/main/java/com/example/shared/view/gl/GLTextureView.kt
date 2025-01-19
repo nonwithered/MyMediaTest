@@ -33,7 +33,7 @@ class GLTextureView(
 ) : TextureView(
     context,
     attributeSet,
-), TextureView. SurfaceTextureListener {
+), TextureView.SurfaceTextureListener {
 
     interface Renderer : GLSurfaceView.Renderer {
 

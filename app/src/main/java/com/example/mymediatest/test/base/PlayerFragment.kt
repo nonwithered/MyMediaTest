@@ -20,7 +20,7 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
-abstract class PlayerFragment<T : View> : BaseFragment() {
+abstract class PlayerFragment<T : Any> : BaseFragment() {
 
     private companion object {
 
@@ -40,7 +40,8 @@ abstract class PlayerFragment<T : View> : BaseFragment() {
     }
 
     protected val playerView: T by lazy {
-        view?.findViewById(R.id.player_view)!!
+        @Suppress("UNCHECKED_CAST")
+        view?.findView<View>(R.id.player_view)!! as T
     }
 
     private val playerState by lazy {
