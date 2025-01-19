@@ -1,4 +1,4 @@
-package com.example.mymediatest.player
+package com.example.mymediatest.test.base
 
 import android.content.Context
 import android.util.AttributeSet

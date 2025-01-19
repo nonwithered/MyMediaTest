@@ -1,4 +1,4 @@
-package com.example.mymediatest.player
+package com.example.mymediatest.test.base
 
 enum class PlayerState {
 

@@ -47,7 +47,7 @@
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintBottom_toBottomOf="parent" />
 
-        <com.example.mymediatest.player.PlayerProgressBar
+        <com.example.mymediatest.test.base.PlayerProgressBar
             android:id="@+id/player_progress_bar"
             android:layout_width="0dp"
             android:layout_height="@dimen/player_action_btn_size"

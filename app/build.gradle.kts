@@ -49,6 +49,8 @@ dependencies {
     implementation(libs.androidx.appcompat)
     implementation(libs.material)
     implementation(libs.androidx.constraintlayout)
+    implementation(libs.androidx.media3.exoplayer)
+    implementation(libs.androidx.media3.extractor)
 
     implementation(project(":ffmpeg"))
     implementation(project(":shared"))

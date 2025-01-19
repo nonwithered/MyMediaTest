@@ -4,8 +4,8 @@ import android.os.Bundle
 import android.view.View
 import android.widget.VideoView
 import com.example.mymediatest.R
-import com.example.mymediatest.player.PlayerFragment
-import com.example.mymediatest.player.PlayerState
+import com.example.mymediatest.test.base.PlayerFragment
+import com.example.mymediatest.test.base.PlayerState
 import com.example.shared.utils.bind
 
 class Test001VideoView : PlayerFragment<VideoView>() {
