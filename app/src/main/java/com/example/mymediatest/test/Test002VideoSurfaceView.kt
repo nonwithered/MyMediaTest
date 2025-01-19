@@ -7,8 +7,11 @@ import com.example.mymediatest.player.MediaPlayerHelper
 import com.example.mymediatest.test.base.PlayerFragment
 import com.example.mymediatest.test.base.PlayerState
 import com.example.shared.utils.bind
+import com.example.shared.utils.logD
 
 open class Test002VideoSurfaceView : PlayerFragment<MediaPlayerHelper.MediaPlayerHelperHolder>() {
+
+    private val TAG = javaClass.simpleName
 
     override val playerLayoutId: Int
         get() = R.layout.test_002_video_surface_view
@@ -38,6 +41,7 @@ open class Test002VideoSurfaceView : PlayerFragment<MediaPlayerHelper.MediaPlaye
             }
         }
         bind(playerView.helper.currentState) {
+            TAG.logD { "currentState $it" }
             when (it) {
                 MediaPlayerHelper.State.PREPARED -> {
                     playerVM.state.value = PlayerState.PAUSED

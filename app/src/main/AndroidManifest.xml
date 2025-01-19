@@ -34,6 +34,7 @@
         <activity
             android:name=".case.CasePageActivity"
             android:exported="false"
+            android:configChanges="colorMode|density|fontScale|fontWeightAdjustment|grammaticalGender|keyboard|keyboardHidden|layoutDirection|locale|mcc|mnc|navigation|orientation|screenLayout|screenSize|smallestScreenSize|touchscreen|uiMode"
             android:label="@string/case_page" />
 
     </application>

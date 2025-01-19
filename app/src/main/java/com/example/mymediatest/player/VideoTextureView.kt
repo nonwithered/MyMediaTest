@@ -58,7 +58,6 @@ class VideoTextureView(
     }
 
     override fun onSurfaceTextureSizeChanged(surface: SurfaceTexture, width: Int, height: Int) {
-        helper.surface = Surface(surface)
     }
 
     override fun onSurfaceTextureUpdated(surface: SurfaceTexture) {

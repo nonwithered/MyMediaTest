@@ -11,6 +11,7 @@ import android.widget.MediaController
 import com.example.shared.utils.Vec2
 import com.example.shared.utils.autoMainCoroutineScope
 import com.example.shared.utils.launchCoroutineScope
+import com.example.shared.utils.logD
 import com.example.shared.utils.runCatchingTyped
 import com.example.shared.utils.systemService
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -31,6 +32,11 @@ class MediaPlayerHelper(
     MediaPlayer.OnInfoListener,
     MediaPlayer.OnBufferingUpdateListener {
 
+    private companion object {
+
+        private const val TAG = "MediaPlayerHelper"
+    }
+
     interface MediaPlayerHelperHolder {
 
         val helper: MediaPlayerHelper
@@ -49,7 +55,6 @@ class MediaPlayerHelper(
     private val _currentState = MutableStateFlow(State.IDLE)
     val currentState = _currentState as StateFlow<State>
     private var targetState = State.IDLE
-        private set
 
     private val _videoSize = MutableStateFlow(0 to 0)
     val videoSize = _videoSize as StateFlow<Vec2<Int>>
@@ -59,6 +64,7 @@ class MediaPlayerHelper(
     var surface: Surface? = null
         set(value) {
             field = value
+            TAG.logD { "surface $value" }
             if (value === null) {
                 release(true)
             } else {
