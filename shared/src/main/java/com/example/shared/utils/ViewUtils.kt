@@ -7,6 +7,8 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.annotation.IdRes
 import androidx.annotation.LayoutRes
+import androidx.annotation.MainThread
+import com.example.shared.R
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -25,8 +27,18 @@ inline fun <reified T : View> View.findView(@IdRes viewId: Int): T? {
     return findViewById<View>(viewId) as? T
 }
 
+inline fun <reified T : Any> View.tag(@IdRes key: Int, crossinline block: () -> T): T {
+    val tag = getTag(key) ?: block().also {
+        setTag(key, it)
+    }
+    return tag as T
+}
+
+@get:MainThread
 val View.coroutineScope: CoroutineScope
-    get() = ViewCoroutineScope(this)
+    get() = tag(R.id.shared_view_coroutine_scope) {
+        ViewCoroutineScope(this)
+    }
 
 private class ViewCoroutineScope(view: View) : CoroutineScope {
 
