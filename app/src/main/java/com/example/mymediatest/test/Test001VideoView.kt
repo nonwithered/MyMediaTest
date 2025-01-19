@@ -25,7 +25,7 @@ class Test001VideoView : PlayerFragment<VideoView>() {
                 playerView.setVideoURI(it)
             }
         }
-        bind(playerVM.isSeekDraging) {
+        bind(playerVM.isSeekDragging) {
             if (it) {
                 playerView.pause()
             } else {

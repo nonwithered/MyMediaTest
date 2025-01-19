@@ -9,12 +9,13 @@ import android.widget.TextView
 import androidx.core.view.updateLayoutParams
 import com.example.mymediatest.R
 import com.example.shared.utils.addOnLayoutChangeListenerAdapter
-import com.example.shared.utils.coroutineScope
+import com.example.shared.utils.autoCoroutineScope
 import com.example.shared.utils.findView
 import com.example.shared.utils.inflate
+import com.example.shared.utils.launchCoroutineScope
 import com.example.shared.utils.logD
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.StateFlow
 import java.util.concurrent.TimeUnit
 import kotlin.math.roundToInt
 import kotlin.math.roundToLong
@@ -32,7 +33,8 @@ class PlayerProgressBar(context: Context, attributeSet: AttributeSet) : FrameLay
 
     val currentPosition = MutableStateFlow(0L)
     val duration = MutableStateFlow(0L)
-    val isSeekDraging = MutableStateFlow(false)
+    private val _isSeekDragging = MutableStateFlow(false)
+    val isSeekDragging = _isSeekDragging as StateFlow<Boolean>
 
     private val timestampCurrentTextView: TextView = findView(R.id.timestamp_current)!!
     private val timestampTotalTextView: TextView = findView(R.id.timestamp_total)!!
@@ -42,15 +44,13 @@ class PlayerProgressBar(context: Context, attributeSet: AttributeSet) : FrameLay
     private var firstLayoutDone = false
 
     init {
-        coroutineScope.launch {
-            currentPosition.collect {
+        autoCoroutineScope.launchCoroutineScope {
+            currentPosition.launchCollect {
                 TAG.logD { "currentPosition $it" }
                 timestampCurrentTextView.text = it.convertText()
                 refreshCursor()
             }
-        }
-        coroutineScope.launch {
-            duration.collect {
+            duration.launchCollect {
                 timestampTotalTextView.text = it.convertText()
                 refreshCursor()
             }
@@ -69,17 +69,17 @@ class PlayerProgressBar(context: Context, attributeSet: AttributeSet) : FrameLay
                 MotionEvent.ACTION_DOWN,
                 MotionEvent.ACTION_MOVE -> {
                     detectSlide(event.x.roundToInt())?.also { current ->
-                        isSeekDraging.value = true
+                        _isSeekDragging.value = true
                         currentPosition.value = current
                     } !== null
                 }
                 MotionEvent.ACTION_UP -> {
                     performClick()
-                    isSeekDraging.value = false
+                    _isSeekDragging.value = false
                     true
                 }
                 MotionEvent.ACTION_CANCEL -> {
-                    isSeekDraging.value = false
+                    _isSeekDragging.value = false
                     false
                 }
                 else -> {

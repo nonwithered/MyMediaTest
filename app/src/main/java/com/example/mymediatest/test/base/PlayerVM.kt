@@ -14,5 +14,5 @@ class PlayerVM : ViewModel() {
 
     val currentPosition = MutableStateFlow(0L)
 
-    val isSeekDraging = MutableStateFlow(false)
+    val isSeekDragging = MutableStateFlow(false)
 }

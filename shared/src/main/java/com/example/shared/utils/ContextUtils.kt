@@ -9,9 +9,9 @@ val app: Application
     get() = BaseApplication.globalApplication
 
 fun <T : Any> Context.getSystemService(type: KClass<T>): T {
-    return getSystemService(type)
+    return getSystemService(type.java)
 }
 
-inline fun <reified T : Any> Context.getSystemService(): T {
+inline fun <reified T : Any> Context.systemService(): T {
     return getSystemService(T::class)
 }

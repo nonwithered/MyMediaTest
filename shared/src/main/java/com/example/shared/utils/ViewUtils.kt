@@ -9,11 +9,6 @@ import androidx.annotation.IdRes
 import androidx.annotation.LayoutRes
 import androidx.annotation.MainThread
 import com.example.shared.R
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.cancel
-import kotlin.coroutines.CoroutineContext
 
 fun ViewGroup.inflate(@LayoutRes layoutId: Int, attach: Boolean = false): View {
     return LayoutInflater.from(context).inflate(layoutId, this, attach)
@@ -35,21 +30,10 @@ inline fun <reified T : Any> View.tag(@IdRes key: Int, crossinline block: () -> 
 }
 
 @get:MainThread
-val View.coroutineScope: CoroutineScope
+val View.autoCoroutineScope: CoroutineScopeHelper
     get() = tag(R.id.shared_view_coroutine_scope) {
-        ViewCoroutineScope(this)
+        autoMainCoroutineScope
     }
-
-private class ViewCoroutineScope(view: View) : CoroutineScope {
-
-    override val coroutineContext: CoroutineContext = SupervisorJob() + Dispatchers.Main.immediate
-
-    init {
-        CommonCleaner.register(view) {
-            coroutineContext.cancel()
-        }
-    }
-}
 
 val View.isRtl: Boolean
     get() = layoutDirection == View.LAYOUT_DIRECTION_RTL
@@ -86,3 +70,6 @@ fun View.addOnLayoutChangeListenerAdapter(listener: OnLayoutChangeListenerAdapte
         )
     }
 }
+
+val View.accessibilityClassNameAdapter: CharSequence
+    get() = javaClass.name

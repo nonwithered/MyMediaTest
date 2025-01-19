@@ -123,7 +123,7 @@ abstract class PlayerFragment<T : View> : BaseFragment() {
         }
         connect(playerProgressBar.duration, playerVM.duration)
         connect(playerProgressBar.currentPosition, playerVM.currentPosition)
-        bind(playerProgressBar.isSeekDraging, playerVM.isSeekDraging)
+        bind(playerProgressBar.isSeekDragging, playerVM.isSeekDragging)
         playerState.setOnClickListener {
             when (playerVM.state.value) {
                 PlayerState.PLAYING -> playerVM.state.value = PlayerState.PAUSED
