@@ -16,6 +16,19 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import kotlin.reflect.KClass
 
+class MutableLiveDataStable<T> : MutableLiveData<T> {
+
+    constructor() : super()
+    constructor(value: T) : super(value)
+
+    override fun setValue(value: T) {
+        if (value == getValue()) {
+            return
+        }
+        super.setValue(value)
+    }
+}
+
 private fun <T> LifecycleOwner.observe(liveData: LiveData<T>, observer: Observer<in T>): () -> Unit {
     liveData.observe(this, observer)
     return {

@@ -80,3 +80,24 @@ infix fun List<Any?>.equalsCombined(rhs: List<Any?>): Boolean {
     }
     return true
 }
+
+val Int.toStringHex: String
+    get() = Integer.toHexString(this)
+
+val Long.toStringHex: String
+    get() = java.lang.Long.toHexString(this)
+
+val Short.toStringHex: String
+    get() = toInt().toStringHex
+
+val Byte.toStringHex: String
+    get() = toInt().toStringHex
+
+val Float.toStringHex: String
+    get() = java.lang.Float.toHexString(this)
+
+val Double.toStringHex: String
+    get() = java.lang.Double.toHexString(this)
+
+val Char.toStringHex: String
+    get() = code.toStringHex

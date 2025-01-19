@@ -2,7 +2,15 @@ package com.example.shared.utils
 
 import java.lang.ref.PhantomReference
 import java.lang.ref.ReferenceQueue
+import java.lang.ref.WeakReference
 import java.util.concurrent.Executors
+import java.util.concurrent.atomic.AtomicReference
+
+val (() -> Unit).asCloseable: AutoCloseable
+    get() = AutoCloseable(this)
+
+val AtomicReference<*>.asCloseable: AutoCloseable
+    get() = { set(null) }.asCloseable
 
 object CommonCleaner : AutoCloseable {
 
@@ -40,6 +48,11 @@ object CommonCleaner : AutoCloseable {
     }
 }
 
-fun register(ref: Any, block: () -> Unit) {
-    CommonCleaner.register(ref, block)
+fun CommonCleaner.registerWeak(ref: Any, block: () -> Unit): AutoCloseable {
+    val blockRef = AtomicReference(block)
+    val blockWeak = WeakReference(block)
+    register(ref) {
+        blockWeak.get()?.invoke()
+    }
+    return blockRef.asCloseable
 }
