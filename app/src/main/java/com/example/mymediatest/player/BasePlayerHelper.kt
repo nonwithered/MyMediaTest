@@ -76,11 +76,11 @@ open class BasePlayerHelper(
 
         var videoSize: Vec2<Int>
 
-        var helper: BasePlayerHelper
+        var player: BasePlayerHelper
             get() = empty
             set(value) {
-                if (helper !== empty) {
-                    throw IllegalStateException("$helper")
+                if (player !== empty) {
+                    throw IllegalStateException("$player")
                 }
                 TAG.logD { "helper set $value" }
                 value.onInit(this as View)

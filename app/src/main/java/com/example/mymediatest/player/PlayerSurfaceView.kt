@@ -13,9 +13,9 @@ class PlayerSurfaceView(
     attributeSet,
 ), BasePlayerHelper.Holder {
 
-    override var helper = super.helper
+    override var player = super.player
         set(value) {
-            super.helper = value
+            super.player = value
             field = value
             holder.addCallback(value)
         }

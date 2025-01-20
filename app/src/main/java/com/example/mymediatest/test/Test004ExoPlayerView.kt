@@ -53,7 +53,6 @@ class Test004ExoPlayerView : PlayerFragment<PlayerView>(), Player.Listener {
         bind(playerVM.currentPosition) {
             if (!player.isPlaying) {
                 player.seekTo(it)
-                TAG.logD { "seekTo $it" }
             }
         }
         player.addListener(this)

@@ -17,8 +17,7 @@
 
         <activity
             android:name=".case.CaseSelectActivity"
-            android:exported="true"
-            android:label="@string/case_list">
+            android:exported="true">
 
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
