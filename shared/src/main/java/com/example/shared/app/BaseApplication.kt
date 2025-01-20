@@ -7,7 +7,7 @@ open class BaseApplication : Application() {
 
     companion object {
 
-        internal lateinit var globalApplication: Application
+        lateinit var globalApplication: Application
             private set
     }
 

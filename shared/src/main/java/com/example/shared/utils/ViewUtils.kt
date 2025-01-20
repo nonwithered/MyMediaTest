@@ -14,11 +14,11 @@ fun ViewGroup.inflate(@LayoutRes layoutId: Int, attach: Boolean = false): View {
     return LayoutInflater.from(context).inflate(layoutId, this, attach)
 }
 
-inline fun <reified T : View> Activity.findView(@IdRes viewId: Int): T? {
+inline fun <reified T : Any> Activity.findView(@IdRes viewId: Int): T? {
     return findViewById<View>(viewId) as? T
 }
 
-inline fun <reified T : View> View.findView(@IdRes viewId: Int): T? {
+inline fun <reified T : Any> View.findView(@IdRes viewId: Int): T? {
     return findViewById<View>(viewId) as? T
 }
 

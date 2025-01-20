@@ -29,7 +29,7 @@ open class BasePlayerHelper(
     val uri = MutableStateFlow(null as Uri?)
     protected open var surface: Surface? = null
 
-    internal open fun onInit(view: View) = Unit
+    protected open fun onInit(view: View) = Unit
 
     override fun surfaceCreated(holder: SurfaceHolder) {
         surface = holder.surface
