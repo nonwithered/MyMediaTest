@@ -5,5 +5,5 @@ import com.example.mymediatest.R
 class Test003VideoTextureView : Test002VideoSurfaceView() {
 
     override val playerLayoutId: Int
-        get() = R.layout.test_003_video_texture_view
+        get() = R.layout.common_player_texture_view
 }

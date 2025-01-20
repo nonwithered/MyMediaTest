@@ -11,7 +11,7 @@ import com.example.shared.utils.bind
 class Test001VideoView : PlayerFragment<VideoView>() {
 
     override val playerLayoutId: Int
-        get() = R.layout.test_001_video_view
+        get() = R.layout.common_video_view
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
@@ -19,10 +19,9 @@ class Test001VideoView : PlayerFragment<VideoView>() {
             onStateChange(it)
         }
         bind(playerVM.contentUri) {
+            playerView.setVideoURI(it)
             if (it === null) {
                 playerVM.state.value = PlayerState.IDLE
-            } else {
-                playerView.setVideoURI(it)
             }
         }
         bind(playerVM.isSeekDragging) {

@@ -15,13 +15,8 @@ import com.example.shared.utils.logD
 
 class Test004ExoPlayerView : PlayerFragment<PlayerView>(), Player.Listener {
 
-    private companion object {
-
-        private const val TAG = "Test004ExoPlayerView"
-    }
-
     override val playerLayoutId: Int
-        get() = R.layout.test_004_exo_player_view
+        get() = R.layout.common_exo_player_view
 
     private val player by lazy {
         ExoPlayer.Builder(requireContext())

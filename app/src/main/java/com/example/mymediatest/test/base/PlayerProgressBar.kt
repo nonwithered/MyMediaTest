@@ -28,7 +28,7 @@ class PlayerProgressBar(context: Context, attributeSet: AttributeSet) : FrameLay
     }
 
     init {
-        inflate(R.layout.player_progress_bar, true)
+        inflate(R.layout.case_player_progress_bar, true)
     }
 
     val currentPosition = MutableStateFlow(0L)
@@ -46,7 +46,7 @@ class PlayerProgressBar(context: Context, attributeSet: AttributeSet) : FrameLay
     init {
         autoCoroutineScope.launchCoroutineScope {
             currentPosition.launchCollect {
-                TAG.logD { "currentPosition $it" }
+                TAG.logD { "currentPosition get $it" }
                 timestampCurrentTextView.text = it.convertText()
                 refreshCursor()
             }

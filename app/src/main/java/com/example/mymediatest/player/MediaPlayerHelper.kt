@@ -7,11 +7,12 @@ import android.media.AudioManager
 import android.media.MediaPlayer
 import android.net.Uri
 import android.view.Surface
+import android.view.View
 import android.widget.MediaController
-import com.example.shared.utils.Vec2
 import com.example.shared.utils.autoMainCoroutineScope
 import com.example.shared.utils.launchCoroutineScope
 import com.example.shared.utils.logD
+import com.example.shared.utils.logI
 import com.example.shared.utils.runCatchingTyped
 import com.example.shared.utils.systemService
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -22,8 +23,9 @@ import java.io.IOException
  * @see android.widget.VideoView
  */
 class MediaPlayerHelper(
-    private val context: Context,
+    context: Context,
 ) :
+    BasePlayerHelper(context),
     MediaController.MediaPlayerControl,
     MediaPlayer.OnPreparedListener,
     MediaPlayer.OnVideoSizeChangedListener,
@@ -31,16 +33,6 @@ class MediaPlayerHelper(
     MediaPlayer.OnErrorListener,
     MediaPlayer.OnInfoListener,
     MediaPlayer.OnBufferingUpdateListener {
-
-    private companion object {
-
-        private const val TAG = "MediaPlayerHelper"
-    }
-
-    interface MediaPlayerHelperHolder {
-
-        val helper: MediaPlayerHelper
-    }
 
     enum class State {
         ERROR,
@@ -56,15 +48,10 @@ class MediaPlayerHelper(
     val currentState = _currentState as StateFlow<State>
     private var targetState = State.IDLE
 
-    private val _videoSize = MutableStateFlow(0 to 0)
-    val videoSize = _videoSize as StateFlow<Vec2<Int>>
-    val surfaceSize = MutableStateFlow(0 to 0)
-
-    val uri = MutableStateFlow(null as Uri?)
-    var surface: Surface? = null
+    override var surface: Surface? = null
         set(value) {
             field = value
-            TAG.logD { "surface $value" }
+            TAG.logD { "surface set $value" }
             if (value === null) {
                 release(true)
             } else {
@@ -89,11 +76,14 @@ class MediaPlayerHelper(
             .setAudioAttributes(audioAttributes)
             .build()
 
-    init {
+    override fun onInit(view: View) {
         autoMainCoroutineScope.launchCoroutineScope {
             uri.launchCollect {
+                TAG.logD { "uri get $it" }
                 seekWhenPrepared = 0
                 openVideo()
+                view.requestLayout()
+                view.invalidate()
             }
             surfaceSize.launchCollect {
                 val isValidState = targetState == State.PLAYING
@@ -117,13 +107,13 @@ class MediaPlayerHelper(
 
     override fun onPrepared(mp: MediaPlayer) {
         _currentState.value = State.PREPARED
-        _videoSize.value = mp.videoWidth to mp.videoHeight
+        videoSize.value = mp.videoWidth to mp.videoHeight
         seekWhenPrepared.takeIf { pos -> pos != 0 }?.let { pos -> seekTo(pos) }
         if (videoSize.value.first == 0 || videoSize.value.second == 0) {
             if (targetState == State.PLAYING) {
                 start()
             }
-        } else if (videoSize == surfaceSize) {
+        } else if (videoSize.value == surfaceSize.value) {
             if (targetState == State.PLAYING) {
                 start()
             }
@@ -131,7 +121,7 @@ class MediaPlayerHelper(
     }
 
     override fun onVideoSizeChanged(mp: MediaPlayer, width: Int, height: Int) {
-        _videoSize.value = mp.videoWidth to mp.videoHeight
+        videoSize.value = mp.videoWidth to mp.videoHeight
     }
 
     override fun onCompletion(mp: MediaPlayer?) {
@@ -159,6 +149,7 @@ class MediaPlayerHelper(
     private fun openVideo() {
         val uri = uri.value ?: return
         val surface = surface ?: return
+        TAG.logI { "openVideo $uri" }
         release(false)
         if (audioFocusType != AudioManager.AUDIOFOCUS_NONE) {
             audioManager.requestAudioFocus(audioFocusRequest)

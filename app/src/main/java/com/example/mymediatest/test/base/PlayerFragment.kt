@@ -22,9 +22,9 @@ import kotlinx.coroutines.launch
 
 abstract class PlayerFragment<T : Any> : BaseFragment() {
 
-    private companion object {
+    protected val TAG = javaClass.simpleName
 
-        private const val TAG = "PlayerFragment"
+    private companion object {
 
         private const val PROGRESS_BAR_REFRESH_INTERVAL = 500L
     }
@@ -33,7 +33,7 @@ abstract class PlayerFragment<T : Any> : BaseFragment() {
     protected open val playerLayoutId: Int
         get() = 0
 
-    final override val layoutId = R.layout.base_player_fragment
+    final override val layoutId = R.layout.case_player_fragment
 
     protected val playerVM: PlayerVM by lazy {
         viewModel()
