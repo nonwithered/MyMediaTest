@@ -2,7 +2,6 @@ package com.example.shared.utils
 
 import java.lang.ref.PhantomReference
 import java.lang.ref.ReferenceQueue
-import java.lang.ref.WeakReference
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicReference
 
@@ -12,47 +11,74 @@ val (() -> Unit).asCloseable: AutoCloseable
 val AtomicReference<*>.asCloseable: AutoCloseable
     get() = { set(null) }.asCloseable
 
-object CommonCleaner : AutoCloseable {
+class Cleaner(
+    name: String
+) : AutoCloseable {
 
-    private val executor = Executors.newSingleThreadExecutor()
+    private val name = "Cleaner-$name"
 
-    private val queue = ReferenceQueue<Any>()
-
-    override fun close() {
-        executor.shutdownNow()
-    }
-
-    init {
-        executor.execute(::loop)
-    }
-
-    private fun loop() {
-        while (true) {
-            loopOnce()
+    private val executor = Executors.newSingleThreadExecutor { r ->
+        defaultThreadFactory.newThread(r).also { t ->
+            t.name = name
         }
     }
 
+    private val queue = ReferenceQueue<Any>()
+
+    private val task: Runnable = Runnable {
+        loopOnce()
+    }
+
+    override fun close() {
+        if (this === common) {
+            return
+        }
+        executor.shutdownNow()
+    }
+
     private fun loopOnce() {
-        (queue.remove() as Cleanable<*>).run()
+        runCatching {
+            val cleanable = queue.remove() as? Cleanable
+            if (cleanable !== null) {
+                cleanable.close()
+            }
+        }.onFailure { e ->
+            name.logE(e) { "onFailure" }
+        }
     }
 
-    private class Cleanable<T : Any>(
-        ref: T,
-        queue: ReferenceQueue<in T>,
+    private class Cleanable(
+        ref: Any,
+        queue: ReferenceQueue<Any>,
         action: Runnable,
-    ) : PhantomReference<T>(ref, queue),
-        Runnable by action
+    ) : PhantomReference<Any>(ref, queue),
+        AutoCloseable {
 
-    fun register(ref: Any, block: () -> Unit) {
-        Cleanable(ref, queue, block)
-    }
-}
+        val name: String = ref.toString()
 
-fun CommonCleaner.registerWeak(ref: Any, block: () -> Unit): AutoCloseable {
-    val blockRef = AtomicReference(block)
-    val blockWeak = WeakReference(block)
-    register(ref) {
-        blockWeak.get()?.invoke()
+        private val action = AtomicReference(action)
+
+        override fun close() {
+            val r = action.get()
+            if (!action.compareAndSet(r, null)) {
+                return
+            }
+            name.logD { "clean $name" }
+            r.run()
+        }
     }
-    return blockRef.asCloseable
+
+    fun register(ref: Any, block: () -> Unit): AutoCloseable {
+        val cleanable = Cleanable(ref, queue, block)
+        executor.execute(task)
+        name.logD { "register ${cleanable.name}" }
+        return cleanable
+    }
+
+    companion object {
+
+        val common = Cleaner("Common")
+
+        private val defaultThreadFactory = Executors.defaultThreadFactory()
+    }
 }

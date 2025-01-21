@@ -5,6 +5,7 @@ import androidx.lifecycle.MutableLiveData
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import java.lang.ref.Reference
+import java.lang.ref.WeakReference
 import java.util.concurrent.atomic.AtomicReference
 import kotlin.reflect.KProperty
 
@@ -47,6 +48,9 @@ operator fun <T> Reference<T>.getValue(owner: Any?, property: KProperty<*>): T? 
 operator fun <T> (() -> T).getValue(owner: Any?, property: KProperty<*>): T {
     return this()
 }
+
+val <T : Any> T.weak: Reference<T>
+    get() = WeakReference(this)
 
 class LateInitProxy<V : Any> : AtomicReference<V?>() {
 

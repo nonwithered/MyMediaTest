@@ -16,6 +16,7 @@ import com.example.shared.utils.findView
 import com.example.shared.utils.inflate
 import com.example.shared.utils.launchCoroutineScope
 import com.example.shared.utils.logD
+import com.example.shared.utils.weak
 import kotlinx.coroutines.flow.MutableStateFlow
 import java.util.concurrent.TimeUnit
 import kotlin.math.roundToInt
@@ -40,15 +41,18 @@ class PlayerProgressBar(context: Context, attributeSet: AttributeSet) : FrameLay
     private var firstLayoutDone = false
 
     init {
+        val weak = weak
+        val currentPosition = currentPosition
+        val duration = duration
         autoCoroutineScope.launchCoroutineScope {
-            currentPosition.launchCollect {
-                TAG.logD { "currentPosition get $it" }
-                timestampCurrentTextView.text = it.convertText()
-                refreshCursor()
+            currentPosition.launchCollect(weak) { self, it ->
+                self.TAG.logD { "currentPosition get $it" }
+                self.timestampCurrentTextView.text = it.convertText()
+                self.refreshCursor()
             }
-            duration.launchCollect {
-                timestampTotalTextView.text = it.convertText()
-                refreshCursor()
+            duration.launchCollect(weak) { self, it ->
+                self.timestampTotalTextView.text = it.convertText()
+                self.refreshCursor()
             }
         }
         addOnLayoutChangeListenerAdapter { _, rect, oldRect ->
@@ -119,23 +123,29 @@ class PlayerProgressBar(context: Context, attributeSet: AttributeSet) : FrameLay
         }
     }
 
-    private fun Long.convertText(): String {
-        val ms = coerceAtLeast(0)
-        val unit = TimeUnit.MILLISECONDS
-        val hour = unit.toHours(ms)
-        val minute = unit.toMinutes(ms) - TimeUnit.HOURS.toMinutes(hour)
-        val second = unit.toSeconds(ms) - TimeUnit.HOURS.toSeconds(hour) - TimeUnit.MINUTES.toSeconds(minute)
-        return listOf(hour, minute, second).joinToString(":") {
-            it.convertString()
-        }
-    }
+    private companion object {
 
-    private fun Long.convertString(): String {
-        val str = toString()
-        return if (str.length == 1) {
-            "0$str"
-        } else {
-            str
+        private fun Long.convertText(): String {
+            val ms = coerceAtLeast(0)
+            val unit = TimeUnit.MILLISECONDS
+            val hour = unit.toHours(ms)
+            val minute = unit.toMinutes(ms) - TimeUnit.HOURS.toMinutes(hour)
+            val second =
+                unit.toSeconds(ms) - TimeUnit.HOURS.toSeconds(hour) - TimeUnit.MINUTES.toSeconds(
+                    minute
+                )
+            return listOf(hour, minute, second).joinToString(":") {
+                it.convertString()
+            }
+        }
+
+        private fun Long.convertString(): String {
+            val str = toString()
+            return if (str.length == 1) {
+                "0$str"
+            } else {
+                str
+            }
         }
     }
 }

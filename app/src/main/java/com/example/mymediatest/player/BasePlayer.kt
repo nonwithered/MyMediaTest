@@ -10,6 +10,7 @@ import android.view.TextureView
 import android.view.View
 import com.example.shared.utils.autoCoroutineScope
 import com.example.shared.utils.launchCoroutineScope
+import com.example.shared.utils.weak
 import kotlinx.coroutines.flow.MutableStateFlow
 
 abstract class BasePlayer(
@@ -22,36 +23,44 @@ abstract class BasePlayer(
 
     protected open var surface: Surface? = null
 
+    protected lateinit var view: View
+
     val uri = MutableStateFlow(null as Uri?)
 
-    fun onInit(view: SurfaceView) {
-        onInit(view as View)
-        view.holder.addCallback(this)
-        view.autoCoroutineScope.launchCoroutineScope {
-            videoSize.launchCollect {
+    fun onInit(v: SurfaceView) {
+        view = v
+        onInit()
+        v.holder.addCallback(this)
+        val weak = weak
+        val videoSize = videoSize
+        v.autoCoroutineScope.launchCoroutineScope {
+            videoSize.launchCollect(weak) { self, it ->
                 val (videoWidth, videoHeight) = it
                 if (videoWidth != 0 && videoHeight != 0) {
-                    view.holder.setFixedSize(videoWidth, videoHeight)
-                    view.requestLayout()
+                    (self.view as SurfaceView).holder.setFixedSize(videoWidth, videoHeight)
+                    self.view.requestLayout()
                 }
             }
         }
     }
 
-    fun onInit(view: TextureView) {
-        onInit(view as View)
-        view.surfaceTextureListener = this
+    fun onInit(v: TextureView) {
+        view = v
+        onInit()
+        v.surfaceTextureListener = this
+        val weak = weak
+        val videoSize = videoSize
         view.autoCoroutineScope.launchCoroutineScope {
-            videoSize.launchCollect {
+            videoSize.launchCollect(weak) { self, it ->
                 val (videoWidth, videoHeight) = it
                 if (videoWidth != 0 && videoHeight != 0) {
-                    view.requestLayout()
+                    self.view.requestLayout()
                 }
             }
         }
     }
 
-    protected open fun onInit(view: View) {
+    protected open fun onInit() {
     }
 
     fun onMeasure(

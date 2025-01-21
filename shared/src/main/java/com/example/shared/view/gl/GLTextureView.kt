@@ -7,9 +7,8 @@ import android.opengl.EGLExt
 import android.opengl.GLSurfaceView
 import android.util.AttributeSet
 import android.view.TextureView
-import com.example.shared.utils.CommonCleaner
+import com.example.shared.utils.Cleaner
 import com.example.shared.utils.getValue
-import com.example.shared.utils.registerWeak
 import com.example.shared.utils.runCatchingTyped
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.asCoroutineDispatcher
@@ -109,7 +108,7 @@ class GLTextureView(
 
     init {
         val glCoroutineContext = Executors.newSingleThreadExecutor().asCoroutineDispatcher()
-        CommonCleaner.register(this) {
+        Cleaner.common.register(this) {
             glCoroutineContext.close()
         }
         glCoroutineScope = CoroutineScope(glCoroutineContext)
@@ -165,7 +164,7 @@ class GLTextureView(
         private val exited = MutableStateFlow(false)
 
         @Suppress("UNUSED")
-        private val cleanable = CommonCleaner.registerWeak(glTextureView) {
+        private val cleanable = Cleaner.common.register(glTextureView) {
             requestExitAndWait()
         }
 

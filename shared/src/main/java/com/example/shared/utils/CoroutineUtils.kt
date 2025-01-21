@@ -11,6 +11,7 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
+import java.lang.ref.Reference
 import kotlin.coroutines.CoroutineContext
 import kotlin.reflect.KClass
 
@@ -64,6 +65,17 @@ interface CoroutineScopeHelper : CoroutineScope {
             collect(block)
         }
     }
+
+    fun <T, S> Flow<T>.launchCollect(ref: Reference<S>, block: suspend (self: S, T) -> Unit) {
+        launch {
+            collect {
+                val self = ref.get()
+                if (self !== null) {
+                    block(self, it)
+                }
+            }
+        }
+    }
 }
 
 private class CoroutineScopeHelperImpl(
@@ -80,10 +92,9 @@ private class AutoCoroutineScope(
 
     override val coroutineContext: CoroutineContext = SupervisorJob() + dispatcher
 
-    init {
-        CommonCleaner.register(ref) {
-            coroutineContext.cancel()
-        }
+    @Suppress("UNUSED")
+    private val cleanable = Cleaner.common.register(ref) {
+        coroutineContext.cancel()
     }
 }
 
