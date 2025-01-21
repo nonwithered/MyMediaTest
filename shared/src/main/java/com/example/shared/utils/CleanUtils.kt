@@ -2,6 +2,7 @@ package com.example.shared.utils
 
 import java.lang.ref.PhantomReference
 import java.lang.ref.ReferenceQueue
+import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicReference
 
@@ -29,6 +30,8 @@ class Cleaner(
         loopOnce()
     }
 
+    private val refs = ConcurrentLinkedQueue<Any?>()
+
     override fun close() {
         if (this === common) {
             return
@@ -41,6 +44,7 @@ class Cleaner(
             val cleanable = queue.remove() as? Cleanable
             if (cleanable !== null) {
                 cleanable.close()
+                refs -= cleanable
             }
         }.onFailure { e ->
             name.logE(e) { "onFailure" }
@@ -50,6 +54,7 @@ class Cleaner(
     private class Cleanable(
         ref: Any,
         queue: ReferenceQueue<Any>,
+        private val tag: String,
         action: Runnable,
     ) : PhantomReference<Any>(ref, queue),
         AutoCloseable {
@@ -63,13 +68,14 @@ class Cleaner(
             if (!action.compareAndSet(r, null)) {
                 return
             }
-            name.logD { "clean $name" }
+            tag.logD { "clean $name" }
             r.run()
         }
     }
 
     fun register(ref: Any, block: () -> Unit): AutoCloseable {
-        val cleanable = Cleanable(ref, queue, block)
+        val cleanable = Cleanable(ref, queue, name, block)
+        refs += cleanable
         executor.execute(task)
         name.logD { "register ${cleanable.name}" }
         return cleanable
