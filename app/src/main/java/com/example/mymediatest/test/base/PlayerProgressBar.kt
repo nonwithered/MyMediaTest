@@ -15,7 +15,7 @@ import com.example.shared.utils.inflate
 import com.example.shared.utils.launchCoroutineScope
 import com.example.shared.utils.logD
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import java.util.concurrent.TimeUnit
 import kotlin.math.roundToInt
 import kotlin.math.roundToLong
@@ -34,7 +34,7 @@ class PlayerProgressBar(context: Context, attributeSet: AttributeSet) : FrameLay
     val currentPosition = MutableStateFlow(0L)
     val duration = MutableStateFlow(0L)
     private val _isSeekDragging = MutableStateFlow(false)
-    val isSeekDragging = _isSeekDragging as StateFlow<Boolean>
+    val isSeekDragging = _isSeekDragging.asStateFlow()
 
     private val timestampCurrentTextView: TextView = findView(R.id.timestamp_current)!!
     private val timestampTotalTextView: TextView = findView(R.id.timestamp_total)!!

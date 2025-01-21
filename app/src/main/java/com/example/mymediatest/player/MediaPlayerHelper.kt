@@ -8,14 +8,14 @@ import android.media.MediaPlayer
 import android.view.Surface
 import android.view.View
 import android.widget.MediaController
-import com.example.shared.utils.autoMainCoroutineScope
+import com.example.shared.utils.autoCoroutineScope
 import com.example.shared.utils.launchCoroutineScope
 import com.example.shared.utils.logD
 import com.example.shared.utils.logI
 import com.example.shared.utils.runCatchingTyped
 import com.example.shared.utils.systemService
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import java.io.IOException
 
 /**
@@ -24,7 +24,7 @@ import java.io.IOException
 class MediaPlayerHelper(
     context: Context,
 ) :
-    BasePlayerHelper(context),
+    BasePlayer(context),
     MediaController.MediaPlayerControl,
     MediaPlayer.OnPreparedListener,
     MediaPlayer.OnVideoSizeChangedListener,
@@ -44,7 +44,8 @@ class MediaPlayerHelper(
     }
 
     private val _currentState = MutableStateFlow(State.IDLE)
-    val currentState = _currentState as StateFlow<State>
+    val currentState = _currentState.asStateFlow()
+
     private var targetState = State.IDLE
 
     override var surface: Surface? = null
@@ -55,6 +56,18 @@ class MediaPlayerHelper(
                 release(true)
             } else {
                 openVideo()
+            }
+        }
+
+    override var surfaceSize
+        get() = super.surfaceSize
+        set(value) {
+            super.surfaceSize = value
+            val isValidState = targetState == State.PLAYING
+            val hasValidSize = videoSize.value == value
+            if (mediaPlayer !== null && isValidState && hasValidSize) {
+                seekWhenPrepared.takeIf { pos -> pos != 0 }?.let { pos -> seekTo(pos) }
+                start()
             }
         }
 
@@ -76,21 +89,14 @@ class MediaPlayerHelper(
             .build()
 
     override fun onInit(view: View) {
-        autoMainCoroutineScope.launchCoroutineScope {
+        super.onInit(view)
+        view.autoCoroutineScope.launchCoroutineScope {
             uri.launchCollect {
                 TAG.logD { "uri get $it" }
                 seekWhenPrepared = 0
                 openVideo()
                 view.requestLayout()
                 view.invalidate()
-            }
-            surfaceSize.launchCollect {
-                val isValidState = targetState == State.PLAYING
-                val hasValidSize = videoSize.value == it
-                if (mediaPlayer !== null && isValidState && hasValidSize) {
-                    seekWhenPrepared.takeIf { pos -> pos != 0 }?.let { pos -> seekTo(pos) }
-                    start()
-                }
             }
         }
     }
@@ -112,7 +118,7 @@ class MediaPlayerHelper(
             if (targetState == State.PLAYING) {
                 start()
             }
-        } else if (videoSize.value == surfaceSize.value) {
+        } else if (videoSize.value == surfaceSize) {
             if (targetState == State.PLAYING) {
                 start()
             }

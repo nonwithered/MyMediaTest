@@ -47,3 +47,22 @@ operator fun <T> Reference<T>.getValue(owner: Any?, property: KProperty<*>): T? 
 operator fun <T> (() -> T).getValue(owner: Any?, property: KProperty<*>): T {
     return this()
 }
+
+class LateInitProxy<V : Any> : AtomicReference<V?>() {
+
+    interface Owner {
+
+        fun onInit()
+    }
+
+    operator fun getValue(owner: Owner, property: KProperty<*>): V {
+        return get()!!
+    }
+
+    operator fun setValue(owner: Owner, property: KProperty<*>, v: V) {
+        if (!compareAndSet(null, v)) {
+            throw IllegalStateException(toString())
+        }
+        owner.onInit()
+    }
+}

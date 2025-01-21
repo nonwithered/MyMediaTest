@@ -3,14 +3,14 @@ package com.example.mymediatest.test
 import android.os.Bundle
 import android.view.View
 import com.example.mymediatest.R
-import com.example.mymediatest.player.BasePlayerHelper
+import com.example.mymediatest.player.BasePlayer
 import com.example.mymediatest.player.MediaPlayerHelper
 import com.example.mymediatest.test.base.PlayerFragment
 import com.example.mymediatest.test.base.PlayerState
 import com.example.shared.utils.bind
 import com.example.shared.utils.logD
 
-open class Test002VideoSurfaceView : PlayerFragment<BasePlayerHelper.Holder>() {
+open class Test002VideoSurfaceView : PlayerFragment<BasePlayer.Holder>() {
 
     override val playerLayoutId: Int
         get() = R.layout.common_player_surface_view
