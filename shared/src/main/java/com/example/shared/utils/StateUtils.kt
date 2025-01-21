@@ -50,9 +50,21 @@ operator fun <T> (() -> T).getValue(owner: Any?, property: KProperty<*>): T {
 
 class LateInitProxy<V : Any> : AtomicReference<V?>() {
 
+    override fun equals(other: Any?): Boolean {
+        return get() === other
+    }
+
+    override fun hashCode(): Int {
+        return get().hashCode()
+    }
+
+    override fun toString(): String {
+        return get().toString()
+    }
+
     interface Owner {
 
-        fun onInit()
+        fun onPropertyInit(proxy: LateInitProxy<*>)
     }
 
     operator fun getValue(owner: Owner, property: KProperty<*>): V {
@@ -63,6 +75,6 @@ class LateInitProxy<V : Any> : AtomicReference<V?>() {
         if (!compareAndSet(null, v)) {
             throw IllegalStateException(toString())
         }
-        owner.onInit()
+        owner.onPropertyInit(this)
     }
 }

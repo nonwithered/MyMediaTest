@@ -9,6 +9,7 @@ import androidx.media3.ui.PlayerView
 import com.example.mymediatest.R
 import com.example.mymediatest.test.base.PlayerFragment
 import com.example.mymediatest.test.base.PlayerState
+import com.example.shared.utils.TAG
 import com.example.shared.utils.bind
 import com.example.shared.utils.elseZero
 import com.example.shared.utils.logD

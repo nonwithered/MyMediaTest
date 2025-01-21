@@ -8,6 +8,7 @@ import android.media.MediaPlayer
 import android.view.Surface
 import android.view.View
 import android.widget.MediaController
+import com.example.shared.utils.TAG
 import com.example.shared.utils.autoCoroutineScope
 import com.example.shared.utils.launchCoroutineScope
 import com.example.shared.utils.logD

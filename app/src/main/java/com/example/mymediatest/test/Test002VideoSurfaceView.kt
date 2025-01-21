@@ -7,6 +7,7 @@ import com.example.mymediatest.player.BasePlayer
 import com.example.mymediatest.player.MediaPlayerHelper
 import com.example.mymediatest.test.base.PlayerFragment
 import com.example.mymediatest.test.base.PlayerState
+import com.example.shared.utils.TAG
 import com.example.shared.utils.bind
 import com.example.shared.utils.logD
 

@@ -15,5 +15,3 @@ operator fun <T : Appendable> T.plusAssign(value: Char) {
 operator fun <T : Appendable> T.plusAssign(value: CharSequence?) {
     append(value)
 }
-
-

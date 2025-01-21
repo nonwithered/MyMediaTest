@@ -8,6 +8,7 @@ import android.widget.FrameLayout
 import android.widget.TextView
 import androidx.core.view.updateLayoutParams
 import com.example.mymediatest.R
+import com.example.shared.utils.TAG
 import com.example.shared.utils.addOnLayoutChangeListenerAdapter
 import com.example.shared.utils.autoCoroutineScope
 import com.example.shared.utils.findView
@@ -21,11 +22,6 @@ import kotlin.math.roundToInt
 import kotlin.math.roundToLong
 
 class PlayerProgressBar(context: Context, attributeSet: AttributeSet) : FrameLayout(context, attributeSet) {
-
-    private companion object {
-
-        private const val TAG = "PlayerProgressBar"
-    }
 
     init {
         inflate(R.layout.case_player_progress_bar, true)

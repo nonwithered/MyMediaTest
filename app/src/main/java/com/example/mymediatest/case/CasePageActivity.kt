@@ -6,14 +6,13 @@ import android.os.Bundle
 import android.view.WindowInsets
 import com.example.mymediatest.R
 import com.example.shared.page.BaseActivity
+import com.example.shared.utils.TAG
 import com.example.shared.utils.elseFalse
 import com.example.shared.utils.logI
 
 class CasePageActivity : BaseActivity() {
 
     companion object {
-
-        private const val TAG = "CasePageActivity"
 
         private const val TAG_PAGE_FRAGMENT = "TAG_SELECT_PAGE_FRAGMENT"
 

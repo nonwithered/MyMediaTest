@@ -10,6 +10,7 @@ import androidx.annotation.LayoutRes
 import androidx.lifecycle.lifecycleScope
 import com.example.mymediatest.R
 import com.example.shared.page.BaseFragment
+import com.example.shared.utils.TAG
 import com.example.shared.utils.bind
 import com.example.shared.utils.connect
 import com.example.shared.utils.dispose
@@ -21,8 +22,6 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 abstract class PlayerFragment<T : Any> : BaseFragment() {
-
-    protected val TAG = javaClass.simpleName
 
     private companion object {
 

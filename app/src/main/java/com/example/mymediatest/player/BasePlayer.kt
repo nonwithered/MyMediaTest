@@ -16,8 +16,6 @@ abstract class BasePlayer(
     protected val context: Context,
 ) : SurfaceHolder.Callback2, TextureView.SurfaceTextureListener {
 
-    protected val TAG = javaClass.simpleName
-
     protected val videoSize = MutableStateFlow(0 to 0)
 
     protected open var surfaceSize = 0 to 0

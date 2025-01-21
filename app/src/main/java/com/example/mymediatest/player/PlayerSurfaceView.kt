@@ -16,8 +16,10 @@ class PlayerSurfaceView(
 
     override var player: BasePlayer by LateInitProxy()
 
-    override fun onInit() {
-        player.onInit(this)
+    override fun onPropertyInit(proxy: LateInitProxy<*>) {
+        when {
+            proxy == player -> player.onInit(this)
+        }
     }
 
     override fun getAccessibilityClassName(): CharSequence {
