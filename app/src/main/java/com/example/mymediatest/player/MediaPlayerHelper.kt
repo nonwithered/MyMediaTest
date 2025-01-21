@@ -9,6 +9,7 @@ import android.view.Surface
 import android.view.View
 import android.widget.MediaController
 import com.example.shared.utils.TAG
+import com.example.shared.utils.asConst
 import com.example.shared.utils.autoCoroutineScope
 import com.example.shared.utils.launchCoroutineScope
 import com.example.shared.utils.logD
@@ -16,7 +17,6 @@ import com.example.shared.utils.logI
 import com.example.shared.utils.runCatchingTyped
 import com.example.shared.utils.systemService
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import java.io.IOException
 
 /**
@@ -45,7 +45,7 @@ class MediaPlayerHelper(
     }
 
     private val _currentState = MutableStateFlow(State.IDLE)
-    val currentState = _currentState.asStateFlow()
+    val currentState = _currentState.asConst
 
     private var targetState = State.IDLE
 

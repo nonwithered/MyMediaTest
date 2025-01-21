@@ -10,13 +10,13 @@ import androidx.core.view.updateLayoutParams
 import com.example.mymediatest.R
 import com.example.shared.utils.TAG
 import com.example.shared.utils.addOnLayoutChangeListenerAdapter
+import com.example.shared.utils.asConst
 import com.example.shared.utils.autoCoroutineScope
 import com.example.shared.utils.findView
 import com.example.shared.utils.inflate
 import com.example.shared.utils.launchCoroutineScope
 import com.example.shared.utils.logD
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import java.util.concurrent.TimeUnit
 import kotlin.math.roundToInt
 import kotlin.math.roundToLong
@@ -30,7 +30,7 @@ class PlayerProgressBar(context: Context, attributeSet: AttributeSet) : FrameLay
     val currentPosition = MutableStateFlow(0L)
     val duration = MutableStateFlow(0L)
     private val _isSeekDragging = MutableStateFlow(false)
-    val isSeekDragging = _isSeekDragging.asStateFlow()
+    val isSeekDragging = _isSeekDragging.asConst
 
     private val timestampCurrentTextView: TextView = findView(R.id.timestamp_current)!!
     private val timestampTotalTextView: TextView = findView(R.id.timestamp_total)!!

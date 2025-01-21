@@ -11,8 +11,12 @@ import androidx.lifecycle.ViewModelStoreOwner
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.FlowCollector
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlin.reflect.KClass
 
@@ -28,6 +32,19 @@ class MutableLiveDataStable<T> : MutableLiveData<T> {
         super.setValue(value)
     }
 }
+
+/**
+ * @see kotlinx.coroutines.flow.asStateFlow
+ * @see kotlinx.coroutines.flow.asSharedFlow
+ */
+fun <T> MutableLiveData<T>.asLiveData(): LiveData<T> = this
+
+val <T> MutableLiveData<T>.asConst: LiveData<T>
+    get() = asLiveData()
+val <T> MutableStateFlow<T>.asConst: StateFlow<T>
+    get() = asStateFlow()
+val <T> MutableSharedFlow<T>.asConst: SharedFlow<T>
+    get() = asSharedFlow()
 
 private fun <T> LifecycleOwner.observe(liveData: LiveData<T>, observer: Observer<in T>): () -> Unit {
     liveData.observe(this, observer)
