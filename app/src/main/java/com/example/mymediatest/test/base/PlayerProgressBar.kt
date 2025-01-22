@@ -11,12 +11,11 @@ import com.example.mymediatest.R
 import com.example.shared.utils.TAG
 import com.example.shared.utils.addOnLayoutChangeListenerAdapter
 import com.example.shared.utils.asConst
-import com.example.shared.utils.autoCoroutineScope
+import com.example.shared.utils.autoViewScope
 import com.example.shared.utils.findView
 import com.example.shared.utils.inflate
-import com.example.shared.utils.launchCoroutineScope
 import com.example.shared.utils.logD
-import com.example.shared.utils.weak
+import com.example.shared.utils.withOwnerCollect
 import kotlinx.coroutines.flow.MutableStateFlow
 import java.util.concurrent.TimeUnit
 import kotlin.math.roundToInt
@@ -41,19 +40,14 @@ class PlayerProgressBar(context: Context, attributeSet: AttributeSet) : FrameLay
     private var firstLayoutDone = false
 
     init {
-        val weak = weak
-        val currentPosition = currentPosition
-        val duration = duration
-        autoCoroutineScope.launchCoroutineScope {
-            currentPosition.launchCollect(weak) { self, it ->
-                self.TAG.logD { "currentPosition get $it" }
-                self.timestampCurrentTextView.text = it.convertText()
-                self.refreshCursor()
-            }
-            duration.launchCollect(weak) { self, it ->
-                self.timestampTotalTextView.text = it.convertText()
-                self.refreshCursor()
-            }
+        autoViewScope.withOwnerCollect(this, currentPosition) { it, owner ->
+            owner.TAG.logD { "currentPosition get $it" }
+            owner.timestampCurrentTextView.text = it.convertText()
+            owner.refreshCursor()
+        }
+        autoViewScope.withOwnerCollect(this, duration) { it, owner ->
+            owner.timestampTotalTextView.text = it.convertText()
+            owner.refreshCursor()
         }
         addOnLayoutChangeListenerAdapter { _, rect, oldRect ->
             firstLayoutDone = true

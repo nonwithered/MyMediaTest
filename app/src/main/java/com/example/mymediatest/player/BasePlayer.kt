@@ -8,9 +8,8 @@ import android.view.SurfaceHolder
 import android.view.SurfaceView
 import android.view.TextureView
 import android.view.View
-import com.example.shared.utils.autoCoroutineScope
-import com.example.shared.utils.launchCoroutineScope
-import com.example.shared.utils.weak
+import com.example.shared.utils.autoViewScope
+import com.example.shared.utils.withOwnerCollect
 import kotlinx.coroutines.flow.MutableStateFlow
 
 abstract class BasePlayer(
@@ -27,40 +26,31 @@ abstract class BasePlayer(
 
     val uri = MutableStateFlow(null as Uri?)
 
-    fun onInit(v: SurfaceView) {
-        view = v
-        onInit()
-        v.holder.addCallback(this)
-        val weak = weak
-        val videoSize = videoSize
-        v.autoCoroutineScope.launchCoroutineScope {
-            videoSize.launchCollect(weak) { self, it ->
-                val (videoWidth, videoHeight) = it
-                if (videoWidth != 0 && videoHeight != 0) {
-                    (self.view as SurfaceView).holder.setFixedSize(videoWidth, videoHeight)
-                    self.view.requestLayout()
-                }
+    fun init(view: SurfaceView) {
+        onInit(view)
+        view.holder.addCallback(this)
+        view.autoViewScope.withOwnerCollect(this, videoSize) { it, owner ->
+            val (videoWidth, videoHeight) = it
+            if (videoWidth != 0 && videoHeight != 0) {
+                (owner.view as SurfaceView).holder.setFixedSize(videoWidth, videoHeight)
+                owner.view.requestLayout()
             }
         }
     }
 
-    fun onInit(v: TextureView) {
-        view = v
-        onInit()
-        v.surfaceTextureListener = this
-        val weak = weak
-        val videoSize = videoSize
-        view.autoCoroutineScope.launchCoroutineScope {
-            videoSize.launchCollect(weak) { self, it ->
-                val (videoWidth, videoHeight) = it
-                if (videoWidth != 0 && videoHeight != 0) {
-                    self.view.requestLayout()
-                }
+    fun init(view: TextureView) {
+        onInit(view)
+        view.surfaceTextureListener = this
+        view.autoViewScope.withOwnerCollect(this, videoSize) { it, owner ->
+            val (videoWidth, videoHeight) = it
+            if (videoWidth != 0 && videoHeight != 0) {
+                owner.view.requestLayout()
             }
         }
     }
 
-    protected open fun onInit() {
+    protected open fun onInit(view: View) {
+        this.view = view
     }
 
     fun onMeasure(

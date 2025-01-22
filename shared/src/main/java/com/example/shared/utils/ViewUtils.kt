@@ -9,6 +9,7 @@ import androidx.annotation.IdRes
 import androidx.annotation.LayoutRes
 import androidx.annotation.MainThread
 import com.example.shared.R
+import kotlinx.coroutines.Dispatchers
 
 fun ViewGroup.inflate(@LayoutRes layoutId: Int, attach: Boolean = false): View {
     return LayoutInflater.from(context).inflate(layoutId, this, attach)
@@ -30,9 +31,9 @@ inline fun <reified T : Any> View.tag(@IdRes key: Int, crossinline block: () -> 
 }
 
 @get:MainThread
-val View.autoCoroutineScope: CoroutineScopeHelper
+val <T : View> T.autoViewScope: AutoCoroutineScope
     get() = tag(R.id.shared_view_coroutine_scope) {
-        autoMainCoroutineScope
+        autoScope(Dispatchers.Main.immediate)
     }
 
 val View.isRtl: Boolean

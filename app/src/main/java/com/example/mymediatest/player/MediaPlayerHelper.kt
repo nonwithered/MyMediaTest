@@ -6,16 +6,16 @@ import android.media.AudioFocusRequest
 import android.media.AudioManager
 import android.media.MediaPlayer
 import android.view.Surface
+import android.view.View
 import android.widget.MediaController
 import com.example.shared.utils.TAG
 import com.example.shared.utils.asConst
-import com.example.shared.utils.autoCoroutineScope
-import com.example.shared.utils.launchCoroutineScope
+import com.example.shared.utils.autoViewScope
 import com.example.shared.utils.logD
 import com.example.shared.utils.logI
 import com.example.shared.utils.runCatchingTyped
 import com.example.shared.utils.systemService
-import com.example.shared.utils.weak
+import com.example.shared.utils.withOwnerCollect
 import kotlinx.coroutines.flow.MutableStateFlow
 import java.io.IOException
 
@@ -89,18 +89,14 @@ class MediaPlayerHelper(
             .setAudioAttributes(audioAttributes)
             .build()
 
-    override fun onInit() {
-        super.onInit()
-        val weak = weak
-        val uri = uri
-        view.autoCoroutineScope.launchCoroutineScope {
-            uri.launchCollect(weak) { self, it ->
-                self.TAG.logD { "uri get $it" }
-                self.seekWhenPrepared = 0
-                self.openVideo()
-                self.view.requestLayout()
-                self.view.invalidate()
-            }
+    override fun onInit(view: View) {
+        super.onInit(view)
+        view.autoViewScope.withOwnerCollect(this, uri) { it, owner ->
+            owner.TAG.logD { "uri get $it" }
+            owner.seekWhenPrepared = 0
+            owner.openVideo()
+            owner.view.requestLayout()
+            owner.view.invalidate()
         }
     }
 

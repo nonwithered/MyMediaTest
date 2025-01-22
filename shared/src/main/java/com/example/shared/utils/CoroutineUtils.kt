@@ -1,18 +1,14 @@
 package com.example.shared.utils
 
-import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Deferred
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
 import kotlinx.coroutines.cancel
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.launch
-import java.lang.ref.Reference
 import kotlin.coroutines.CoroutineContext
+import kotlin.coroutines.EmptyCoroutineContext
 import kotlin.reflect.KClass
 
 fun Job.dispose() {
@@ -58,68 +54,50 @@ fun <R> runCatchingTyped(vararg types: Pair<KClass<out Throwable>, (Throwable) -
     return runCatchingTyped(types.toMap(), block)
 }
 
-interface CoroutineScopeHelper : CoroutineScope {
+class AutoCoroutineScope(
+    owner: Any,
+    coroutineContext: CoroutineContext,
+) : CoroutineScope, AutoCloseable {
 
-    fun <T> Flow<T>.launchCollect(block: suspend (T) -> Unit) {
-        launch {
-            collect(block)
+    init {
+        Cleaner.common.register(owner) {
+            close()
         }
     }
 
-    fun <T, S> Flow<T>.launchCollect(ref: Reference<S>, block: suspend (self: S, T) -> Unit) {
-        launch {
-            collect {
-                val self = ref.get()
-                if (self !== null) {
-                    block(self, it)
-                }
+    override val coroutineContext: CoroutineContext = SupervisorJob() + coroutineContext
+
+    override fun close() {
+        coroutineContext.cancel()
+    }
+}
+
+fun <T : Any> T.autoScope(coroutineContext: CoroutineContext = EmptyCoroutineContext): AutoCoroutineScope {
+    return AutoCoroutineScope(this, coroutineContext)
+}
+
+fun <T : Any, R> AutoCoroutineScope.withOwner(
+    ref: T,
+    block: suspend CoroutineScope.(weak: () -> T?) -> R,
+): Deferred<R> {
+    val weak by ref.weak
+    return async {
+        block {
+            weak
+        }
+    }
+}
+
+fun <T : Any, V> AutoCoroutineScope.withOwnerCollect(
+    ref: T,
+    flow: Flow<V>,
+    block: suspend CoroutineScope.(it: V, owner: T) -> Unit,
+): Job {
+    return withOwner(ref) { weak ->
+        flow.collect {
+            weak()?.let { owner ->
+                block(it, owner)
             }
         }
     }
 }
-
-private class CoroutineScopeHelperImpl(
-    scope: CoroutineScope,
-) : CoroutineScopeHelper, CoroutineScope by scope
-
-private val CoroutineScope.asHelper: CoroutineScopeHelper
-    get() = CoroutineScopeHelperImpl(this)
-
-private class AutoCoroutineScope(
-    ref: Any,
-    dispatcher: CoroutineDispatcher,
-) : CoroutineScope {
-
-    override val coroutineContext: CoroutineContext = SupervisorJob() + dispatcher
-
-    init {
-        Cleaner.common.register(ref) {
-            coroutineContext.cancel()
-        }
-    }
-}
-
-fun CoroutineScope.launchCoroutineScope(block: suspend CoroutineScopeHelper.() -> Unit): Job {
-    return launch {
-        coroutineScope {
-            asHelper.block()
-        }
-    }
-}
-
-fun <T> CoroutineScope.asyncCoroutineScope(block: suspend CoroutineScopeHelper.() -> T): Deferred<T> {
-    return async {
-        coroutineScope {
-            asHelper.block()
-        }
-    }
-}
-
-fun Any.autoCoroutineScope(dispatcher: CoroutineDispatcher): CoroutineScopeHelper {
-    return AutoCoroutineScope(this, dispatcher).asHelper
-}
-
-val Any.autoMainCoroutineScope: CoroutineScopeHelper
-    get() {
-        return autoCoroutineScope(Dispatchers.Main.immediate)
-    }
