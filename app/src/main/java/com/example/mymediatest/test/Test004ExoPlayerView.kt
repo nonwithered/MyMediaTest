@@ -19,18 +19,17 @@ class Test004ExoPlayerView : PlayerFragment<PlayerView>(), Player.Listener {
     override val playerLayoutId: Int
         get() = R.layout.common_exo_player_view
 
-    private val player by lazy {
-        ExoPlayer.Builder(requireContext())
-            .build()
-            .apply {
-                playWhenReady = false
-            }
-    }
+    private lateinit var player: Player
 
     private var waitPrepared = true
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        player = ExoPlayer.Builder(requireContext())
+            .build()
+            .apply {
+                playWhenReady = false
+            }
         playerView.player = player
         bind(playerVM.state) {
             onStateChange(it)
@@ -57,6 +56,11 @@ class Test004ExoPlayerView : PlayerFragment<PlayerView>(), Player.Listener {
             }
         }
         player.addListener(this)
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        player.release()
     }
 
     override fun onPlaybackStateChanged(playbackState: Int) {
