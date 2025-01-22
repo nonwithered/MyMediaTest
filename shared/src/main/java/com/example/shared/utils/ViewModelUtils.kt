@@ -9,6 +9,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelStoreOwner
 import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.FlowCollector
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -94,24 +96,40 @@ fun <T> LifecycleOwner.bind(source: StateFlow<T>, target: MutableLiveData<in T>)
     }
 }
 
-fun <T> LifecycleOwner.connect(lhs: MutableLiveData<T>, rhs: MutableLiveData<T>) {
-    bind(lhs, rhs)
-    bind(rhs, lhs)
+fun <T> LifecycleOwner.connect(lhs: MutableLiveData<T>, rhs: MutableLiveData<T>): () -> Unit {
+    val first = bind(lhs, rhs)
+    val second = bind(rhs, lhs)
+    return {
+        first()
+        second()
+    }
 }
 
-fun <T> LifecycleOwner.connect(lhs: MutableLiveData<T?>, rhs: MutableStateFlow<T?>) {
-    bind(lhs, rhs)
-    bind(rhs, lhs)
+fun <T> LifecycleOwner.connect(lhs: MutableLiveData<T?>, rhs: MutableStateFlow<T?>): () -> Unit {
+    val first = bind(lhs, rhs)
+    val second = bind(rhs, lhs)
+    return {
+        first()
+        second()
+    }
 }
 
-fun <T> LifecycleOwner.connect(lhs: MutableStateFlow<T>, rhs: MutableStateFlow<T>) {
-    bind(lhs, rhs)
-    bind(rhs, lhs)
+fun <T> LifecycleOwner.connect(lhs: MutableStateFlow<T>, rhs: MutableStateFlow<T>): () -> Unit {
+    val first = bind(lhs, rhs)
+    val second = bind(rhs, lhs)
+    return {
+        first()
+        second()
+    }
 }
 
-fun <T> LifecycleOwner.connect(lhs: MutableStateFlow<T?>, rhs: MutableLiveData<T?>) {
-    bind(lhs, rhs)
-    bind(rhs, lhs)
+fun <T> LifecycleOwner.connect(lhs: MutableStateFlow<T?>, rhs: MutableLiveData<T?>): () -> Unit {
+    val first = bind(lhs, rhs)
+    val second = bind(rhs, lhs)
+    return {
+        first()
+        second()
+    }
 }
 
 @MainThread
@@ -127,4 +145,28 @@ fun <T : ViewModel> ViewModelStoreOwner.viewModel(type: KClass<T>): T {
 @MainThread
 inline fun <reified T : ViewModel> ViewModelStoreOwner.viewModel(): T {
     return viewModel(T::class)
+}
+
+fun <V> AutoCoroutineScope.launchCollect(
+    flow: Flow<V>,
+    block: suspend CoroutineScope.(it: V) -> Unit,
+): Job {
+    return launch {
+        flow.collect {
+            block(it)
+        }
+    }
+}
+
+fun <T : Any, V> AutoCoroutineScope.launchCollect(
+    flow: Flow<V>,
+    ref: T,
+    block: suspend CoroutineScope.(it: V, owner: T) -> Unit,
+): Job {
+    val weak by ref.weak
+    return launchCollect(flow) {
+        weak?.let {  owner ->
+            block(it, owner)
+        }
+    }
 }
