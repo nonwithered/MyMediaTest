@@ -95,8 +95,8 @@ class MediaPlayerHelper(
             owner.TAG.logD { "uri get $it" }
             owner.seekWhenPrepared = 0
             owner.openVideo()
-            owner.view.requestLayout()
-            owner.view.invalidate()
+            owner.requestLayout()
+            owner.invalidate()
         }
     }
 

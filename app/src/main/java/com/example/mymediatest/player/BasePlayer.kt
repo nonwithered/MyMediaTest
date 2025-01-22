@@ -8,21 +8,23 @@ import android.view.SurfaceHolder
 import android.view.SurfaceView
 import android.view.TextureView
 import android.view.View
+import com.example.shared.utils.ViewSupport
 import com.example.shared.utils.autoViewScope
 import com.example.shared.utils.withOwnerCollect
 import kotlinx.coroutines.flow.MutableStateFlow
 
 abstract class BasePlayer(
     protected val context: Context,
-) : SurfaceHolder.Callback2, TextureView.SurfaceTextureListener {
+    private val viewAdapter: ViewSupport.Adapter<View> = ViewSupport.Adapter()
+) : ViewSupport by viewAdapter,
+    SurfaceHolder.Callback2,
+    TextureView.SurfaceTextureListener {
 
     protected val videoSize = MutableStateFlow(0 to 0)
 
     protected open var surfaceSize = 0 to 0
 
     protected open var surface: Surface? = null
-
-    protected lateinit var view: View
 
     val uri = MutableStateFlow(null as Uri?)
 
@@ -32,8 +34,8 @@ abstract class BasePlayer(
         view.autoViewScope.withOwnerCollect(this, videoSize) { it, owner ->
             val (videoWidth, videoHeight) = it
             if (videoWidth != 0 && videoHeight != 0) {
-                (owner.view as SurfaceView).holder.setFixedSize(videoWidth, videoHeight)
-                owner.view.requestLayout()
+                (owner.viewAdapter.view as SurfaceView).holder.setFixedSize(videoWidth, videoHeight)
+                owner.requestLayout()
             }
         }
     }
@@ -44,13 +46,13 @@ abstract class BasePlayer(
         view.autoViewScope.withOwnerCollect(this, videoSize) { it, owner ->
             val (videoWidth, videoHeight) = it
             if (videoWidth != 0 && videoHeight != 0) {
-                owner.view.requestLayout()
+                owner.requestLayout()
             }
         }
     }
 
     protected open fun onInit(view: View) {
-        this.view = view
+        viewAdapter.view = view
     }
 
     fun onMeasure(
@@ -96,7 +98,7 @@ abstract class BasePlayer(
     override fun onSurfaceTextureUpdated(texture: SurfaceTexture) {
     }
 
-    interface Holder {
+    interface Holder : ViewSupport {
 
         var player: BasePlayer
     }

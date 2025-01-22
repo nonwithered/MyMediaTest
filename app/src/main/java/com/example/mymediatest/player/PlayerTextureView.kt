@@ -12,7 +12,9 @@ class PlayerTextureView(
 ) : TextureView(
     context,
     attributeSet,
-), BasePlayer.Holder, LateInitProxy.Owner {
+),
+    BasePlayer.Holder,
+    LateInitProxy.Owner {
 
     override var player: BasePlayer by LateInitProxy()
 
