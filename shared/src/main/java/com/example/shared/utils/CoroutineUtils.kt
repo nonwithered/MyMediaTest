@@ -1,12 +1,11 @@
 package com.example.shared.utils
 
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.async
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.launch
 import kotlin.coroutines.CoroutineContext
 import kotlin.coroutines.EmptyCoroutineContext
 import kotlin.reflect.KClass
@@ -76,28 +75,26 @@ fun <T : Any> T.autoScope(coroutineContext: CoroutineContext = EmptyCoroutineCon
     return AutoCoroutineScope(this, coroutineContext)
 }
 
-fun <T : Any, R> AutoCoroutineScope.withOwner(
-    ref: T,
-    block: suspend CoroutineScope.(weak: () -> T?) -> R,
-): Deferred<R> {
-    val weak by ref.weak
-    return async {
-        block {
-            weak
+fun <V> AutoCoroutineScope.launchCollect(
+    flow: Flow<V>,
+    block: suspend CoroutineScope.(it: V) -> Unit,
+): Job {
+    return launch {
+        flow.collect {
+            block(it)
         }
     }
 }
 
-fun <T : Any, V> AutoCoroutineScope.withOwnerCollect(
-    ref: T,
+fun <T : Any, V> AutoCoroutineScope.launchCollect(
     flow: Flow<V>,
+    ref: T,
     block: suspend CoroutineScope.(it: V, owner: T) -> Unit,
 ): Job {
-    return withOwner(ref) { weak ->
-        flow.collect {
-            weak()?.let { owner ->
-                block(it, owner)
-            }
+    val weak by ref.weak
+    return launchCollect(flow) {
+        weak?.let {  owner ->
+            block(it, owner)
         }
     }
 }

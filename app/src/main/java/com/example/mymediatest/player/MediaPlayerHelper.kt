@@ -15,7 +15,7 @@ import com.example.shared.utils.logD
 import com.example.shared.utils.logI
 import com.example.shared.utils.runCatchingTyped
 import com.example.shared.utils.systemService
-import com.example.shared.utils.withOwnerCollect
+import com.example.shared.utils.launchCollect
 import kotlinx.coroutines.flow.MutableStateFlow
 import java.io.IOException
 
@@ -91,7 +91,7 @@ class MediaPlayerHelper(
 
     override fun onInit(view: View) {
         super.onInit(view)
-        view.autoViewScope.withOwnerCollect(this, uri) { it, owner ->
+        view.autoViewScope.launchCollect(uri, this) { it, owner ->
             owner.TAG.logD { "uri get $it" }
             owner.seekWhenPrepared = 0
             owner.openVideo()
