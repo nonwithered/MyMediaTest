@@ -9,16 +9,20 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelStoreOwner
 import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.FlowCollector
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlin.reflect.KClass
 
@@ -63,7 +67,13 @@ val <T> MutableStateFlow<T>.asConst: StateFlow<T>
 val <T> MutableSharedFlow<T>.asConst: SharedFlow<T>
     get() = asSharedFlow()
 
-suspend fun <V> LiveData<V>.collect(block: suspend (V?) -> Unit) {
+val <T> LiveData<T>.asFlow: StateFlow<T?>
+    get() = LiveDataFlow(this)
+
+val <T> MutableLiveData<T>.asFlow: MutableStateFlow<T?>
+    get() = MutableLiveDataFlow(this)
+
+suspend fun <V> LiveData<V>.collect(block: suspend (V?) -> Unit): Nothing {
     val channel = Channel<V?>(Channel.UNLIMITED)
     val observer = Observer<V?> {
         channel.trySend(it)
@@ -76,63 +86,86 @@ suspend fun <V> LiveData<V>.collect(block: suspend (V?) -> Unit) {
     } finally {
         removeObserver(observer)
     }
+    throw CancellationException()
 }
 
-fun <T> LifecycleOwner.bind(state: LiveData<T>, block: suspend (T?) -> Unit): () -> Unit {
-    return lifecycleScope.launch {
-        state.collect {
-            block(it)
+open class LiveDataFlow<T>(
+    private val liveData: LiveData<T>,
+) : StateFlow<T?> {
+
+    override val value: T?
+        get() = liveData.value
+
+    override val replayCache: List<T?>
+        get() = listOf(value)
+
+    override suspend fun collect(collector: FlowCollector<T?>): Nothing {
+        liveData.collect {
+            collector.emit(it)
         }
-    }::dispose.once
+    }
+}
+
+open class MutableLiveDataFlow<T>(
+    private val mutableLiveData: MutableLiveData<T>,
+) : LiveDataFlow<T>(mutableLiveData), MutableStateFlow<T?>, StateFlow<T?> {
+
+    override var value: T?
+        get() = super.value
+        set(value) {
+            mutableLiveData.value = value
+        }
+
+    override suspend fun collect(collector: FlowCollector<T?>): Nothing {
+        _subscriptionCount.update {
+            it + 1
+        }
+        try {
+            super.collect(collector)
+        } finally {
+            _subscriptionCount.update {
+                it - 1
+            }
+        }
+    }
+
+    private val _subscriptionCount = MutableStateFlow(0)
+
+    override val subscriptionCount: StateFlow<Int>
+        get() = _subscriptionCount.asConst
+
+    @ExperimentalCoroutinesApi
+    override fun resetReplayCache() {
+        throw UnsupportedOperationException()
+    }
+
+    override fun tryEmit(value: T?): Boolean {
+        this.value = value
+        return true
+    }
+
+    override suspend fun emit(value: T?) {
+        this.value = value
+    }
+
+    override fun compareAndSet(expect: T?, update: T?): Boolean {
+        if (value != expect) {
+            return false
+        }
+        value = update
+        return true
+    }
 }
 
 fun <T> LifecycleOwner.bind(state: Flow<T>, block: suspend (T) -> Unit): () -> Unit {
-    return lifecycleScope.launch {
-        state.collect {
-            block(it)
-        }
+    return lifecycleScope.bind(state) {
+        block(it)
     }::dispose.once
-}
-
-fun <T> LifecycleOwner.bind(source: LiveData<out T>, target: MutableLiveData<in T>): () -> Unit {
-    return bind(source) {
-        target.value = it
-    }
-}
-
-fun <T> LifecycleOwner.bind(source: LiveData<out T>, target: MutableStateFlow<in T?>): () -> Unit {
-    return bind(source) {
-        target.value = it
-    }
 }
 
 fun <T> LifecycleOwner.bind(source: StateFlow<T>, target: MutableStateFlow<in T>): () -> Unit {
     return bind(source) {
         target.value = it
-    }
-}
-
-fun <T> LifecycleOwner.bind(source: StateFlow<T>, target: MutableLiveData<in T>): () -> Unit {
-    return bind(source) {
-        target.value = it
-    }
-}
-
-fun <T> LifecycleOwner.connect(lhs: MutableLiveData<T>, rhs: MutableLiveData<T>): () -> Unit {
-    val first = bind(lhs, rhs)
-    val second = bind(rhs, lhs)
-    return {
-        first()
-        second()
-    }
-}
-
-fun <T> LifecycleOwner.connect(lhs: MutableLiveData<T?>, rhs: MutableStateFlow<T?>): () -> Unit {
-    val first = bind(lhs, rhs)
-    val second = bind(rhs, lhs)
-    return {
-        first()
-        second()
     }
 }
 
@@ -145,16 +178,7 @@ fun <T> LifecycleOwner.connect(lhs: MutableStateFlow<T>, rhs: MutableStateFlow<T
     }
 }
 
-fun <T> LifecycleOwner.connect(lhs: MutableStateFlow<T?>, rhs: MutableLiveData<T?>): () -> Unit {
-    val first = bind(lhs, rhs)
-    val second = bind(rhs, lhs)
-    return {
-        first()
-        second()
-    }
-}
-
-fun <V> CoroutineScope.launchBind(
+fun <V> CoroutineScope.bind(
     state: Flow<V>,
     block: suspend CoroutineScope.(it: V) -> Unit,
 ): Job {
@@ -165,39 +189,15 @@ fun <V> CoroutineScope.launchBind(
     }
 }
 
-fun <V> CoroutineScope.launchBind(
-    state: LiveData<V>,
-    block: suspend CoroutineScope.(it: V?) -> Unit,
+fun <T : Any, V> CaptureCoroutineScope<T>.bind(
+    state: Flow<V>,
+    block: suspend CoroutineScope.(it: V, capture: T) -> Unit,
 ): Job {
     return launch {
         state.collect {
-            block(it)
-        }
-    }
-}
-
-fun <T : Any, V> CoroutineScope.launchBind(
-    state: Flow<V>,
-    ref: T,
-    block: suspend CoroutineScope.(it: V, owner: T) -> Unit,
-): Job {
-    val weak by ref.weak
-    return launchBind(state) {
-        weak?.let {  owner ->
-            block(it, owner)
-        }
-    }
-}
-
-fun <T : Any, V> CoroutineScope.launchBind(
-    state: LiveData<V>,
-    ref: T,
-    block: suspend CoroutineScope.(it: V?, owner: T) -> Unit,
-): Job {
-    val weak by ref.weak
-    return launchBind(state) {
-        weak?.let {  owner ->
-            block(it, owner)
+            capture?.let { capture ->
+                block(it, capture)
+            }
         }
     }
 }

@@ -51,24 +51,26 @@ fun <R> runCatchingTyped(vararg types: Pair<KClass<out Throwable>, (Throwable) -
     return runCatchingTyped(types.toMap(), block)
 }
 
-class AutoCoroutineScope(
-    owner: Any,
-    coroutineContext: CoroutineContext,
-) : CoroutineScope, AutoCloseable {
-
-    init {
-        Cleaner.common.register(owner) {
-            close()
-        }
+fun <T : Any> T.autoScope(coroutineContext: CoroutineContext = EmptyCoroutineContext): CoroutineScope {
+    val scope = CoroutineScope(coroutineContext + SupervisorJob())
+    Cleaner.common.register(this) {
+        scope.coroutineContext.cancel()
     }
-
-    override val coroutineContext: CoroutineContext = SupervisorJob() + coroutineContext
-
-    override fun close() {
-        coroutineContext.cancel()
-    }
+    return scope
 }
 
-fun <T : Any> T.autoScope(coroutineContext: CoroutineContext = EmptyCoroutineContext): AutoCoroutineScope {
-    return AutoCoroutineScope(this, coroutineContext)
+class CaptureCoroutineScope<T : Any>(
+    scope: CoroutineScope,
+    ref: T,
+) : CoroutineScope by scope {
+
+    val capture by ref.weak
+}
+
+fun <T : Any> CoroutineScope.capture(ref: T): CaptureCoroutineScope<T> {
+    return CaptureCoroutineScope(this, ref)
+}
+
+fun <T : Any, R> CoroutineScope.capture(ref: T, block: CaptureCoroutineScope<T>.() -> R): R {
+    return capture(ref).block()
 }
