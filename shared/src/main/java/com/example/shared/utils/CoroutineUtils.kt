@@ -92,9 +92,10 @@ private class AutoCoroutineScope(
 
     override val coroutineContext: CoroutineContext = SupervisorJob() + dispatcher
 
-    @Suppress("UNUSED")
-    private val cleanable = Cleaner.common.register(ref) {
-        coroutineContext.cancel()
+    init {
+        Cleaner.common.register(ref) {
+            coroutineContext.cancel()
+        }
     }
 }
 

@@ -54,30 +54,25 @@ class Cleaner(
     private class Cleanable(
         ref: Any,
         queue: ReferenceQueue<Any>,
-        private val tag: String,
-        action: Runnable,
+        private val action: () -> Unit,
     ) : PhantomReference<Any>(ref, queue),
         AutoCloseable {
 
-        val name: String = ref.toString()
-
-        private val action = AtomicReference(action)
-
         override fun close() {
-            val r = action.get()
-            if (!action.compareAndSet(r, null)) {
-                return
-            }
-            tag.logD { "clean $name" }
-            r.run()
+            action()
         }
     }
 
     fun register(ref: Any, block: () -> Unit): AutoCloseable {
-        val cleanable = Cleanable(ref, queue, name, block)
+        val tag = name
+        val name = ref.toString()
+        val cleanable = Cleanable(ref, queue, blockOnce {
+            block()
+            tag.logD { "clear $name" }
+        })
         refs += cleanable
         executor.execute(task)
-        name.logD { "register ${cleanable.name}" }
+        tag.logD { "register $name" }
         return cleanable
     }
 
@@ -87,4 +82,13 @@ class Cleaner(
 
         private val defaultThreadFactory = Executors.defaultThreadFactory()
     }
+}
+
+fun Cleaner.registerWeak(ref: Any, block: () -> Unit): AutoCloseable {
+    val blockRef = blockOnce(block)
+    val blockWeak = blockRef.weak
+    register(ref) {
+        blockWeak.get()?.invoke()
+    }
+    return blockRef.asCloseable
 }

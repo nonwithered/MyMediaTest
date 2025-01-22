@@ -49,6 +49,24 @@ operator fun <T> (() -> T).getValue(owner: Any?, property: KProperty<*>): T {
     return this()
 }
 
+fun <T : Any> AtomicReference<T>.tryClear(block: (T) -> Unit): Boolean {
+    val ref = get()
+    if (!compareAndSet(ref, null)) {
+        return false
+    }
+    block(ref)
+    return true
+}
+
+fun blockOnce(block: () -> Unit): () -> Unit {
+    val ref = AtomicReference(block)
+    return {
+        ref.tryClear { r ->
+            r()
+        }
+    }
+}
+
 val <T : Any> T.weak: Reference<T>
     get() = WeakReference(this)
 

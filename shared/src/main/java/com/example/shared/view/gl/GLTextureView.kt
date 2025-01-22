@@ -9,6 +9,7 @@ import android.util.AttributeSet
 import android.view.TextureView
 import com.example.shared.utils.Cleaner
 import com.example.shared.utils.getValue
+import com.example.shared.utils.registerWeak
 import com.example.shared.utils.runCatchingTyped
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.asCoroutineDispatcher
@@ -157,15 +158,14 @@ class GLTextureView(
 
         @Volatile
         var renderMode: RenderMode,
-    ) {
+    ) : AutoCloseable {
 
         @Volatile
         private var shouldExit = false
         private val exited = MutableStateFlow(false)
 
-        @Suppress("UNUSED")
-        private val cleanable = Cleaner.common.register(glTextureView) {
-            requestExitAndWait()
+        private val cleanable = Cleaner.common.registerWeak(glTextureView) {
+            close()
         }
 
         private val view by WeakReference(glTextureView)
@@ -178,6 +178,10 @@ class GLTextureView(
         }
 
         fun requestExitAndWait() {
+            cleanable.close()
+        }
+
+        override fun close() {
             shouldExit = true
             runBlocking {
                 exited.first { it }
