@@ -66,10 +66,10 @@ class Cleaner(
     fun register(ref: Any, block: () -> Unit): AutoCloseable {
         val tag = name
         val name = ref.toString()
-        val cleanable = Cleanable(ref, queue, blockOnce {
+        val cleanable = Cleanable(ref, queue, {
             block()
             tag.logD { "clear $name" }
-        })
+        }.once)
         refs += cleanable
         executor.execute(task)
         tag.logD { "register $name" }
@@ -85,7 +85,7 @@ class Cleaner(
 }
 
 fun Cleaner.registerWeak(ref: Any, block: () -> Unit): AutoCloseable {
-    val blockRef = blockOnce(block)
+    val blockRef = block.once
     val blockWeak = blockRef.weak
     register(ref) {
         blockWeak.get()?.invoke()

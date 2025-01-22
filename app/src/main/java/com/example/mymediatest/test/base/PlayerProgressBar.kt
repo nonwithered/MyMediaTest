@@ -15,7 +15,7 @@ import com.example.shared.utils.autoViewScope
 import com.example.shared.utils.findView
 import com.example.shared.utils.inflate
 import com.example.shared.utils.logD
-import com.example.shared.utils.launchCollect
+import com.example.shared.utils.launchBind
 import kotlinx.coroutines.flow.MutableStateFlow
 import java.util.concurrent.TimeUnit
 import kotlin.math.roundToInt
@@ -40,12 +40,12 @@ class PlayerProgressBar(context: Context, attributeSet: AttributeSet) : FrameLay
     private var firstLayoutDone = false
 
     init {
-        autoViewScope.launchCollect(currentPosition, this) { it, owner ->
+        autoViewScope.launchBind(currentPosition, this) { it, owner ->
             owner.TAG.logD { "currentPosition get $it" }
             owner.timestampCurrentTextView.text = it.convertText()
             owner.refreshCursor()
         }
-        autoViewScope.launchCollect(duration, this) { it, owner ->
+        autoViewScope.launchBind(duration, this) { it, owner ->
             owner.timestampTotalTextView.text = it.convertText()
             owner.refreshCursor()
         }

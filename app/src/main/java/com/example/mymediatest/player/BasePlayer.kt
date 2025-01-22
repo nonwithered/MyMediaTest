@@ -10,7 +10,7 @@ import android.view.TextureView
 import android.view.View
 import com.example.shared.utils.ViewSupport
 import com.example.shared.utils.autoViewScope
-import com.example.shared.utils.launchCollect
+import com.example.shared.utils.launchBind
 import kotlinx.coroutines.flow.MutableStateFlow
 
 abstract class BasePlayer(
@@ -31,7 +31,7 @@ abstract class BasePlayer(
     fun init(view: SurfaceView) {
         onInit(view)
         view.holder.addCallback(this)
-        view.autoViewScope.launchCollect(videoSize, this) { it, owner ->
+        view.autoViewScope.launchBind(videoSize, this) { it, owner ->
             val (videoWidth, videoHeight) = it
             if (videoWidth != 0 && videoHeight != 0) {
                 (owner.viewAdapter.view as SurfaceView).holder.setFixedSize(videoWidth, videoHeight)
@@ -43,7 +43,7 @@ abstract class BasePlayer(
     fun init(view: TextureView) {
         onInit(view)
         view.surfaceTextureListener = this
-        view.autoViewScope.launchCollect(videoSize, this) { it, owner ->
+        view.autoViewScope.launchBind(videoSize, this) { it, owner ->
             val (videoWidth, videoHeight) = it
             if (videoWidth != 0 && videoHeight != 0) {
                 owner.requestLayout()

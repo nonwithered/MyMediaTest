@@ -58,14 +58,15 @@ fun <T : Any> AtomicReference<T>.tryClear(block: (T) -> Unit): Boolean {
     return true
 }
 
-fun blockOnce(block: () -> Unit): () -> Unit {
-    val ref = AtomicReference(block)
-    return {
-        ref.tryClear { r ->
-            r()
+val (() -> Unit).once: () -> Unit
+    get() {
+        val ref = AtomicReference(this)
+        return {
+            ref.tryClear { r ->
+                r()
+            }
         }
     }
-}
 
 val <T : Any> T.weak: Reference<T>
     get() = WeakReference(this)

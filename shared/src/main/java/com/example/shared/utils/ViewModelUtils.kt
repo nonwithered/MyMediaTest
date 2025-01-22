@@ -11,8 +11,8 @@ import androidx.lifecycle.ViewModelStoreOwner
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.FlowCollector
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -35,6 +35,21 @@ class MutableLiveDataStable<T> : MutableLiveData<T> {
     }
 }
 
+@MainThread
+fun <T : ViewModel> ViewModelStoreOwner.viewModel(type: Class<T>): T {
+    return ViewModelProvider(this)[type]
+}
+
+@MainThread
+fun <T : ViewModel> ViewModelStoreOwner.viewModel(type: KClass<T>): T {
+    return viewModel(type.java)
+}
+
+@MainThread
+inline fun <reified T : ViewModel> ViewModelStoreOwner.viewModel(): T {
+    return viewModel(T::class)
+}
+
 /**
  * @see kotlinx.coroutines.flow.asStateFlow
  * @see kotlinx.coroutines.flow.asSharedFlow
@@ -48,28 +63,35 @@ val <T> MutableStateFlow<T>.asConst: StateFlow<T>
 val <T> MutableSharedFlow<T>.asConst: SharedFlow<T>
     get() = asSharedFlow()
 
-private fun <T> LifecycleOwner.observe(liveData: LiveData<T>, observer: Observer<in T>): () -> Unit {
-    liveData.observe(this, observer)
-    return {
-        liveData.removeObserver(observer)
+suspend fun <V> LiveData<V>.collect(block: suspend (V?) -> Unit) {
+    val channel = Channel<V?>(Channel.UNLIMITED)
+    val observer = Observer<V?> {
+        channel.trySend(it)
+    }
+    observeForever(observer)
+    try {
+        channel.forEach {
+            block(it)
+        }
+    } finally {
+        removeObserver(observer)
     }
 }
 
-private fun <T> LifecycleOwner.collect(flow: Flow<T>, collector: FlowCollector<T>): () -> Unit {
-    val job = lifecycleScope.launch {
-        flow.collect(collector)
-    }
-    return {
-        job.cancel()
-    }
+fun <T> LifecycleOwner.bind(state: LiveData<T>, block: suspend (T?) -> Unit): () -> Unit {
+    return lifecycleScope.launch {
+        state.collect {
+            block(it)
+        }
+    }::dispose.once
 }
 
-fun <T> LifecycleOwner.bind(state: LiveData<T>, block: (T?) -> Unit): () -> Unit {
-    return observe(state, block)
-}
-
-fun <T> LifecycleOwner.bind(state: Flow<T>, block: (T) -> Unit): () -> Unit {
-    return collect(state, block)
+fun <T> LifecycleOwner.bind(state: Flow<T>, block: suspend (T) -> Unit): () -> Unit {
+    return lifecycleScope.launch {
+        state.collect {
+            block(it)
+        }
+    }::dispose.once
 }
 
 fun <T> LifecycleOwner.bind(source: LiveData<out T>, target: MutableLiveData<in T>): () -> Unit {
@@ -132,39 +154,48 @@ fun <T> LifecycleOwner.connect(lhs: MutableStateFlow<T?>, rhs: MutableLiveData<T
     }
 }
 
-@MainThread
-fun <T : ViewModel> ViewModelStoreOwner.viewModel(type: Class<T>): T {
-    return ViewModelProvider(this)[type]
-}
-
-@MainThread
-fun <T : ViewModel> ViewModelStoreOwner.viewModel(type: KClass<T>): T {
-    return viewModel(type.java)
-}
-
-@MainThread
-inline fun <reified T : ViewModel> ViewModelStoreOwner.viewModel(): T {
-    return viewModel(T::class)
-}
-
-fun <V> AutoCoroutineScope.launchCollect(
-    flow: Flow<V>,
+fun <V> CoroutineScope.launchBind(
+    state: Flow<V>,
     block: suspend CoroutineScope.(it: V) -> Unit,
 ): Job {
     return launch {
-        flow.collect {
+        state.collect {
             block(it)
         }
     }
 }
 
-fun <T : Any, V> AutoCoroutineScope.launchCollect(
-    flow: Flow<V>,
+fun <V> CoroutineScope.launchBind(
+    state: LiveData<V>,
+    block: suspend CoroutineScope.(it: V?) -> Unit,
+): Job {
+    return launch {
+        state.collect {
+            block(it)
+        }
+    }
+}
+
+fun <T : Any, V> CoroutineScope.launchBind(
+    state: Flow<V>,
     ref: T,
     block: suspend CoroutineScope.(it: V, owner: T) -> Unit,
 ): Job {
     val weak by ref.weak
-    return launchCollect(flow) {
+    return launchBind(state) {
+        weak?.let {  owner ->
+            block(it, owner)
+        }
+    }
+}
+
+fun <T : Any, V> CoroutineScope.launchBind(
+    state: LiveData<V>,
+    ref: T,
+    block: suspend CoroutineScope.(it: V?, owner: T) -> Unit,
+): Job {
+    val weak by ref.weak
+    return launchBind(state) {
         weak?.let {  owner ->
             block(it, owner)
         }
