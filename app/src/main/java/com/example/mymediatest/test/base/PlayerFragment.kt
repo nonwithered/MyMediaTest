@@ -140,6 +140,11 @@ abstract class PlayerFragment<T : Any> : BaseFragment() {
         }
     }
 
+    override fun onDestroyView() {
+        super.onDestroyView()
+        refreshProgress.attach = false
+    }
+
     protected open val currentPosition: Long
         get() = 0
 }
