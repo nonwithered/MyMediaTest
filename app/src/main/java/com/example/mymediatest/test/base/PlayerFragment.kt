@@ -69,10 +69,8 @@ abstract class PlayerFragment<T : Any> : BaseFragment() {
         { it.launch("video/*") }
     }
 
-    private val refreshProgress = AutoLauncher("$TAG-refreshProgress") { Dispatchers.Main.immediate + SupervisorJob() }
-
-    init {
-        refreshProgress.launch {
+    private val refreshProgress = AutoLauncher("$TAG-refreshProgress") { Dispatchers.Main.immediate + SupervisorJob() }.apply {
+        launch {
             while (true) {
                 playerVM.currentPosition.value = currentPosition
                 delay(PROGRESS_BAR_REFRESH_INTERVAL)
