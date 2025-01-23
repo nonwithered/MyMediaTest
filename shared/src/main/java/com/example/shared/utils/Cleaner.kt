@@ -2,15 +2,7 @@ package com.example.shared.utils
 
 import java.lang.ref.PhantomReference
 import java.lang.ref.ReferenceQueue
-import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.Executors
-import java.util.concurrent.atomic.AtomicReference
-
-val (() -> Unit).asCloseable: AutoCloseable
-    get() = AutoCloseable(this)
-
-val AtomicReference<*>.asCloseable: AutoCloseable
-    get() = { set(null) }.asCloseable
 
 class Cleaner(
     name: String
@@ -30,7 +22,7 @@ class Cleaner(
         loopOnce()
     }
 
-    private val refs = ConcurrentLinkedQueue<Any?>()
+    private val refs = ConcurrentHashSet<Cleanable>()
 
     override fun close() {
         if (this === common) {

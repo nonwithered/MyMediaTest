@@ -101,3 +101,9 @@ class LateInitProxy<V : Any> : AtomicReference<V?>() {
         owner.onPropertyInit(this)
     }
 }
+
+val (() -> Unit).asCloseable: AutoCloseable
+    get() = AutoCloseable(this)
+
+val AtomicReference<*>.asCloseable: AutoCloseable
+    get() = { set(null) }.asCloseable
