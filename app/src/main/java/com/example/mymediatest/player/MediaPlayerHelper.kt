@@ -10,13 +10,12 @@ import android.view.View
 import android.widget.MediaController
 import com.example.shared.utils.TAG
 import com.example.shared.utils.asConst
-import com.example.shared.utils.autoViewScope
+import com.example.shared.utils.autoAttachScope
 import com.example.shared.utils.logD
 import com.example.shared.utils.logI
 import com.example.shared.utils.runCatchingTyped
 import com.example.shared.utils.systemService
 import com.example.shared.utils.bind
-import com.example.shared.utils.capture
 import kotlinx.coroutines.flow.MutableStateFlow
 import java.io.IOException
 
@@ -92,12 +91,14 @@ class MediaPlayerHelper(
 
     override fun onInit(view: View) {
         super.onInit(view)
-        view.autoViewScope.capture(this).bind(uri) { it, owner ->
-            owner.TAG.logD { "uri get $it" }
-            owner.seekWhenPrepared = 0
-            owner.openVideo()
-            owner.requestLayout()
-            owner.invalidate()
+        view.autoAttachScope.launch {
+            bind(uri) {
+                TAG.logD { "uri get $it" }
+                seekWhenPrepared = 0
+                openVideo()
+                requestLayout()
+                invalidate()
+            }
         }
     }
 

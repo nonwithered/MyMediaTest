@@ -2,8 +2,11 @@ package com.example.shared.utils
 
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.launch
+import java.util.concurrent.locks.Lock
+import java.util.concurrent.locks.ReentrantLock
+import kotlin.concurrent.withLock
 import kotlin.coroutines.CoroutineContext
 import kotlin.coroutines.EmptyCoroutineContext
 import kotlin.reflect.KClass
@@ -51,8 +54,8 @@ fun <R> runCatchingTyped(vararg types: Pair<KClass<out Throwable>, (Throwable) -
     return runCatchingTyped(types.toMap(), block)
 }
 
-fun <T : Any> T.autoScope(coroutineContext: CoroutineContext = EmptyCoroutineContext): CoroutineScope {
-    val scope = CoroutineScope(coroutineContext + SupervisorJob())
+fun <T : Any> T.autoRefScope(coroutineContext: CoroutineContext = EmptyCoroutineContext): CoroutineScope {
+    val scope = CoroutineScope(coroutineContext)
     Cleaner.common.register(this) {
         scope.coroutineContext.cancel()
     }
@@ -73,4 +76,45 @@ fun <T : Any> CoroutineScope.capture(ref: T): CaptureCoroutineScope<T> {
 
 fun <T : Any, R> CoroutineScope.capture(ref: T, block: CaptureCoroutineScope<T>.() -> R): R {
     return capture(ref).block()
+}
+
+class AutoLauncher(
+    coroutineContext: () -> CoroutineContext,
+) {
+
+    private val coroutineContext by coroutineContext
+
+    private var scope: CoroutineScope? = null
+
+    private var tasks = mutableMapOf<suspend CoroutineScope.() -> Unit, Job?>()
+
+    private val lock: Lock = ReentrantLock()
+
+    private fun dispose(block: suspend CoroutineScope.() -> Unit): Unit = lock.withLock {
+        tasks.remove(block)?.cancel()
+    }
+
+    fun launch(block: suspend CoroutineScope.() -> Unit): () -> Unit = lock.withLock {
+        tasks[block] = scope?.launch(block = block)
+        return {
+            dispose(block)
+        }
+    }
+
+    fun onAttach(): Unit = lock.withLock {
+        val coroutineScope = CoroutineScope(coroutineContext)
+        scope = coroutineScope
+        tasks = tasks.mapValuesTo(mutableMapOf()) {
+            coroutineScope.launch(block = it.key)
+        }
+    }
+
+    fun onDetach(): Unit = lock.withLock {
+        tasks = tasks.mapValuesTo(mutableMapOf()) {
+            it.value?.cancel()
+            null
+        }
+        scope?.cancel()
+        scope = null
+    }
 }

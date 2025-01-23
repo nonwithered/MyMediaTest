@@ -58,13 +58,24 @@ fun <T : Any> AtomicReference<T>.tryClear(block: (T) -> Unit): Boolean {
     return true
 }
 
-val (() -> Unit).once: () -> Unit
+val <T : Any> (() -> T).once: () -> T?
     get() {
         val ref = AtomicReference(this)
         return {
+            var result: T? = null
             ref.tryClear { r ->
-                r()
+                result = r()
             }
+            result
+        }
+    }
+
+@get:JvmName("runOnce")
+val (() -> Unit).once: () -> Unit
+    get() {
+        val r = (this as (() -> Any)).once
+        return {
+            r()
         }
     }
 

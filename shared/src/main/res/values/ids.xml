@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <id name="shared_view_coroutine_scope" />
+    <id name="shared_view_auto_attach_scope" />
 
 </resources>

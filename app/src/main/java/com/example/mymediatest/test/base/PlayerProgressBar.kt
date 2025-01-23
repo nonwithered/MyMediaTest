@@ -11,12 +11,11 @@ import com.example.mymediatest.R
 import com.example.shared.utils.TAG
 import com.example.shared.utils.addOnLayoutChangeListenerAdapter
 import com.example.shared.utils.asConst
-import com.example.shared.utils.autoViewScope
+import com.example.shared.utils.autoAttachScope
 import com.example.shared.utils.findView
 import com.example.shared.utils.inflate
 import com.example.shared.utils.logD
 import com.example.shared.utils.bind
-import com.example.shared.utils.capture
 import kotlinx.coroutines.flow.MutableStateFlow
 import java.util.concurrent.TimeUnit
 import kotlin.math.roundToInt
@@ -41,15 +40,15 @@ class PlayerProgressBar(context: Context, attributeSet: AttributeSet) : FrameLay
     private var firstLayoutDone = false
 
     init {
-        autoViewScope.capture(this) {
-            bind(currentPosition) { it, owner ->
-                owner.TAG.logD { "currentPosition get $it" }
-                owner.timestampCurrentTextView.text = it.convertText()
-                owner.refreshCursor()
+        autoAttachScope.launch {
+            bind(currentPosition) {
+                TAG.logD { "currentPosition get $it" }
+                timestampCurrentTextView.text = it.convertText()
+                refreshCursor()
             }
-            bind(duration) { it, owner ->
-                owner.timestampTotalTextView.text = it.convertText()
-                owner.refreshCursor()
+            bind(duration) {
+                timestampTotalTextView.text = it.convertText()
+                refreshCursor()
             }
         }
         addOnLayoutChangeListenerAdapter { _, rect, oldRect ->

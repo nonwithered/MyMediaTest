@@ -11,8 +11,8 @@ import androidx.annotation.IntDef
 import androidx.annotation.LayoutRes
 import androidx.annotation.MainThread
 import com.example.shared.R
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 
 fun ViewGroup.inflate(@LayoutRes layoutId: Int, attach: Boolean = false): View {
     return LayoutInflater.from(context).inflate(layoutId, this, attach)
@@ -33,11 +33,38 @@ inline fun <reified T : Any> View.tag(@IdRes key: Int, crossinline block: () -> 
     return tag as T
 }
 
-@get:MainThread
-val <T : View> T.autoViewScope: CoroutineScope
-    get() = tag(R.id.shared_view_coroutine_scope) {
-        autoScope(Dispatchers.Main.immediate)
+inline fun <reified T : Any> View.tag(@IdRes key: Int): T {
+    return tag(key) {
+        firstOrNull(
+            { newInstance(this) },
+            { newInstance(View::class to this) },
+            { newInstance() },
+        )!!
     }
+}
+
+internal class AutoLauncherViewAdapter(v: View) : View.OnAttachStateChangeListener {
+
+    val launcher = AutoLauncher {
+        Dispatchers.Main.immediate + SupervisorJob()
+    }
+
+    init {
+        v.addOnAttachStateChangeListener(this)
+    }
+
+    override fun onViewAttachedToWindow(v: View) {
+        launcher.onAttach()
+    }
+
+    override fun onViewDetachedFromWindow(v: View) {
+        launcher.onDetach()
+    }
+}
+
+@get:MainThread
+val <T : View> T.autoAttachScope: AutoLauncher
+    get() = tag<AutoLauncherViewAdapter>(R.id.shared_view_auto_attach_scope).launcher
 
 val View.isRtl: Boolean
     get() = layoutDirection == View.LAYOUT_DIRECTION_RTL

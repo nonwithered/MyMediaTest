@@ -101,3 +101,12 @@ val Double.toStringHex: String
 
 val Char.toStringHex: String
     get() = code.toStringHex
+
+fun <T : Any> firstOrNull(vararg block: () -> T?): T? {
+    for (it in block) {
+        it()?.let { r ->
+            return r
+        }
+    }
+    return null
+}
