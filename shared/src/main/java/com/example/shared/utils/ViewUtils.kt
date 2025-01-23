@@ -54,11 +54,11 @@ internal class AutoLauncherViewAdapter(v: View) : View.OnAttachStateChangeListen
     }
 
     override fun onViewAttachedToWindow(v: View) {
-        launcher.onAttach()
+        launcher.attach = true
     }
 
     override fun onViewDetachedFromWindow(v: View) {
-        launcher.onDetach()
+        launcher.attach = false
     }
 }
 

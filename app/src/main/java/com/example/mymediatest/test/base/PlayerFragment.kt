@@ -106,16 +106,16 @@ abstract class PlayerFragment<T : Any> : BaseFragment() {
             playerState.setBackgroundResource(image)
             when (it) {
                 PlayerState.PLAYING -> {
-                    refreshProgress.onAttach()
+                    refreshProgress.attach = true
                 }
                 PlayerState.PAUSED -> {
-                    refreshProgress.onDetach()
+                    refreshProgress.attach = false
                 }
                 PlayerState.IDLE -> {
                     actionContainer.visibility = View.VISIBLE
                     playerVM.currentPosition.value = 0
                     playerVM.duration.value = 0
-                    refreshProgress.onDetach()
+                    refreshProgress.attach = false
                 }
             }
         }

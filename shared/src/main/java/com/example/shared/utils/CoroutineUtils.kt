@@ -102,6 +102,7 @@ class AutoLauncher(
 
     private val coroutineContext by coroutineContext
 
+    @Volatile
     private var scope: CoroutineScope? = null
 
     private var tasks = mutableMapOf<suspend CoroutineScope.() -> Unit, Job?>()
@@ -119,7 +120,17 @@ class AutoLauncher(
         }
     }
 
-    fun onAttach(): Unit = lock.withLock {
+    var attach: Boolean
+        get() = scope !== null
+        set(value) {
+            if (value) {
+                onAttach()
+            } else {
+                onDetach()
+            }
+        }
+
+    private fun onAttach(): Unit = lock.withLock {
         if (scope !== null) {
             return@withLock
         }
@@ -131,7 +142,7 @@ class AutoLauncher(
         }
     }
 
-    fun onDetach(): Unit = lock.withLock {
+    private fun onDetach(): Unit = lock.withLock {
         val coroutineScope = scope ?: return@withLock
         TAG.logD { "onDetach $msg" }
         scope = null
