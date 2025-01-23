@@ -9,11 +9,12 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelStoreOwner
 import androidx.lifecycle.lifecycleScope
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.async
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.FlowCollector
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -74,19 +75,22 @@ val <T> MutableLiveData<T>.asFlow: MutableStateFlow<T?>
     get() = MutableLiveDataFlow(this)
 
 suspend fun <V> LiveData<V>.collect(block: suspend (V?) -> Unit): Nothing {
-    val channel = Channel<V?>(Channel.UNLIMITED)
-    val observer = Observer<V?> {
-        channel.trySend(it)
-    }
-    observeForever(observer)
-    try {
+    coroutineScope {
+        val channel = Channel<V?>(Channel.UNLIMITED)
+        val job = async {
+            val observer = Observer<V?> {
+                channel.trySend(it)
+            }
+            observeForever(observer)
+            onDispose {
+                removeObserver(observer)
+            }
+        }
         channel.forEach {
             block(it)
         }
-    } finally {
-        removeObserver(observer)
+        job.await()
     }
-    throw CancellationException()
 }
 
 open class LiveDataFlow<T>(

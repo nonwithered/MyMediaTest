@@ -7,19 +7,18 @@ import android.view.ViewGroup
 import android.view.ViewStub
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.LayoutRes
-import androidx.lifecycle.lifecycleScope
 import com.example.mymediatest.R
 import com.example.shared.page.BaseFragment
+import com.example.shared.utils.AutoLauncher
 import com.example.shared.utils.TAG
 import com.example.shared.utils.bind
 import com.example.shared.utils.connect
-import com.example.shared.utils.dispose
 import com.example.shared.utils.findView
 import com.example.shared.utils.logI
 import com.example.shared.utils.viewModel
-import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 
 abstract class PlayerFragment<T : Any> : BaseFragment() {
 
@@ -63,13 +62,22 @@ abstract class PlayerFragment<T : Any> : BaseFragment() {
         view?.findView<View>(R.id.action_container)!!
     }
 
-    private var refreshProgressDispose: (() -> Unit)? = null
-
     private val launcherGetContent = registerForActivityResult(ActivityResultContracts.GetContent()) {
         TAG.logI { "GetContent $it" }
         playerVM.contentUri.value = it
     }.let {
         { it.launch("video/*") }
+    }
+
+    private val refreshProgress = AutoLauncher("$TAG-refreshProgress") { Dispatchers.Main.immediate + SupervisorJob() }
+
+    init {
+        refreshProgress.launch {
+            while (true) {
+                playerVM.currentPosition.value = currentPosition
+                delay(PROGRESS_BAR_REFRESH_INTERVAL)
+            }
+        }
     }
 
     override fun onCreateView(
@@ -98,26 +106,16 @@ abstract class PlayerFragment<T : Any> : BaseFragment() {
             playerState.setBackgroundResource(image)
             when (it) {
                 PlayerState.PLAYING -> {
-                    refreshProgressDispose = lifecycleScope.launch {
-                        try {
-                            while (true) {
-                                playerVM.currentPosition.value = currentPosition
-                                delay(PROGRESS_BAR_REFRESH_INTERVAL)
-                            }
-                        } catch (e: CancellationException) {
-                            refreshProgressDispose = null
-                            throw e
-                        }
-                    }::dispose
+                    refreshProgress.onAttach()
                 }
                 PlayerState.PAUSED -> {
-                    refreshProgressDispose?.invoke()
+                    refreshProgress.onDetach()
                 }
                 PlayerState.IDLE -> {
                     actionContainer.visibility = View.VISIBLE
                     playerVM.currentPosition.value = 0
                     playerVM.duration.value = 0
-                    refreshProgressDispose?.invoke()
+                    refreshProgress.onDetach()
                 }
             }
         }

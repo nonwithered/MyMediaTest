@@ -9,6 +9,7 @@ import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
 import kotlin.coroutines.CoroutineContext
 import kotlin.coroutines.EmptyCoroutineContext
+import kotlin.coroutines.suspendCoroutine
 import kotlin.reflect.KClass
 
 fun Job.dispose() {
@@ -78,12 +79,26 @@ fun <T : Any, R> CoroutineScope.capture(ref: T, block: CaptureCoroutineScope<T>.
     return capture(ref).block()
 }
 
+suspend fun onDispose(block: () -> Unit): Nothing {
+    try {
+        suspendCoroutine<Nothing> {
+        }
+    } finally {
+        block()
+    }
+}
+
 class AutoLauncher(
-    tag: (() -> String)? = null,
+    msg: () -> String,
     coroutineContext: () -> CoroutineContext,
 ) {
 
-    private val msg: String by { tag?.invoke() ?: "" }
+    constructor(
+        msg: String,
+        coroutineContext: () -> CoroutineContext,
+    ) : this({ msg }, coroutineContext)
+
+    private val msg: String by msg
 
     private val coroutineContext by coroutineContext
 
@@ -105,6 +120,9 @@ class AutoLauncher(
     }
 
     fun onAttach(): Unit = lock.withLock {
+        if (scope !== null) {
+            return@withLock
+        }
         TAG.logD { "onAttach $msg" }
         val coroutineScope = CoroutineScope(coroutineContext)
         scope = coroutineScope
@@ -114,12 +132,13 @@ class AutoLauncher(
     }
 
     fun onDetach(): Unit = lock.withLock {
+        val coroutineScope = scope ?: return@withLock
+        TAG.logD { "onDetach $msg" }
+        scope = null
         tasks = tasks.mapValuesTo(mutableMapOf()) {
             it.value?.cancel()
             null
         }
-        scope?.cancel()
-        scope = null
-        TAG.logD { "onDetach $msg" }
+        coroutineScope.cancel()
     }
 }
