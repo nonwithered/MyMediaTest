@@ -79,8 +79,11 @@ fun <T : Any, R> CoroutineScope.capture(ref: T, block: CaptureCoroutineScope<T>.
 }
 
 class AutoLauncher(
+    tag: (() -> String)? = null,
     coroutineContext: () -> CoroutineContext,
 ) {
+
+    private val msg: String by { tag?.invoke() ?: "" }
 
     private val coroutineContext by coroutineContext
 
@@ -102,6 +105,7 @@ class AutoLauncher(
     }
 
     fun onAttach(): Unit = lock.withLock {
+        TAG.logD { "onAttach $msg" }
         val coroutineScope = CoroutineScope(coroutineContext)
         scope = coroutineScope
         tasks = tasks.mapValuesTo(mutableMapOf()) {
@@ -116,5 +120,6 @@ class AutoLauncher(
         }
         scope?.cancel()
         scope = null
+        TAG.logD { "onDetach $msg" }
     }
 }

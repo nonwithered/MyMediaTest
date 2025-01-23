@@ -45,7 +45,7 @@ inline fun <reified T : Any> View.tag(@IdRes key: Int): T {
 
 internal class AutoLauncherViewAdapter(v: View) : View.OnAttachStateChangeListener {
 
-    val launcher = AutoLauncher {
+    val launcher = AutoLauncher(v::toString) {
         Dispatchers.Main.immediate + SupervisorJob()
     }
 
