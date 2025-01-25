@@ -6,13 +6,12 @@ import android.view.View
 import androidx.annotation.LayoutRes
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
-import com.example.mymediatest.R
-import com.example.mymediatest.select.CaseParamsFragment
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.PlayerView
+import com.example.mymediatest.R
 import com.example.mymediatest.player.BasePlayer
 import com.example.mymediatest.player.ExoPlayerHelper
-import com.example.mymediatest.select.CasePageActivity.PageModel
+import com.example.mymediatest.select.CaseParamsFragment
 import com.example.mymediatest.test.base.PlayerFragment
 import com.example.mymediatest.test.base.PlayerState
 import com.example.shared.bean.BundleProperties
@@ -21,7 +20,6 @@ import com.example.shared.utils.bind
 import com.example.shared.utils.elseZero
 import com.example.shared.utils.getValue
 import com.example.shared.utils.logD
-import com.example.shared.utils.viewModel
 
 class Test003ExoPlayer : PlayerFragment<View>(), Player.Listener {
 
@@ -81,10 +79,6 @@ class Test003ExoPlayer : PlayerFragment<View>(), Player.Listener {
                 caseParams.viewType = it
             }
         }
-    }
-
-    private val pageData by {
-        requireActivity().viewModel<PageModel>().pageData!!
     }
 
     private val params by {

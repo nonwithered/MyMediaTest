@@ -6,7 +6,6 @@ import androidx.annotation.LayoutRes
 import com.example.mymediatest.R
 import com.example.mymediatest.player.BasePlayer
 import com.example.mymediatest.player.MediaPlayerHelper
-import com.example.mymediatest.select.CasePageActivity.PageModel
 import com.example.mymediatest.select.CaseParamsFragment
 import com.example.mymediatest.test.base.PlayerFragment
 import com.example.mymediatest.test.base.PlayerState
@@ -15,7 +14,6 @@ import com.example.shared.utils.TAG
 import com.example.shared.utils.bind
 import com.example.shared.utils.getValue
 import com.example.shared.utils.logD
-import com.example.shared.utils.viewModel
 
 class Test002MediaPlayer : PlayerFragment<BasePlayer.Holder>() {
 
@@ -53,10 +51,6 @@ class Test002MediaPlayer : PlayerFragment<BasePlayer.Holder>() {
                 caseParams.viewType = it
             }
         }
-    }
-
-    private val pageData by {
-        requireActivity().viewModel<PageModel>().pageData!!
     }
     
     private val params by {

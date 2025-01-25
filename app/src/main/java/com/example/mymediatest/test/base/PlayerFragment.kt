@@ -8,12 +8,14 @@ import android.view.ViewStub
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.LayoutRes
 import com.example.mymediatest.R
+import com.example.mymediatest.select.CasePageActivity.PageModel
 import com.example.shared.page.BaseFragment
 import com.example.shared.utils.AutoLauncher
 import com.example.shared.utils.TAG
 import com.example.shared.utils.bind
 import com.example.shared.utils.connect
 import com.example.shared.utils.findView
+import com.example.shared.utils.getValue
 import com.example.shared.utils.logI
 import com.example.shared.utils.viewModel
 import kotlinx.coroutines.Dispatchers
@@ -35,6 +37,10 @@ abstract class PlayerFragment<T : Any> : BaseFragment() {
 
     protected val playerVM: PlayerVM by lazy {
         viewModel()
+    }
+
+    protected val pageData by lazy {
+        requireActivity().viewModel<PageModel>().pageData!!
     }
 
     @get:Suppress("UNCHECKED_CAST")
