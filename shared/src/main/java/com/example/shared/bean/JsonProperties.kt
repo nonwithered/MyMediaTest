@@ -23,7 +23,7 @@ class JsonProperties(
             Byte::class -> getInt(k).toByte()
             Float::class -> getDouble(k).toFloat()
             Double::class -> getDouble(k)
-            Char::class -> getString(k).takeIf { it.length == 1 }?.first()
+            Char::class -> getString(k).takeIf { it.length == 1 }?.first()!!
             String::class -> getString(k)
             JSONArray::class -> getJSONArray(k)
             JSONObject::class -> getJSONObject(k)
@@ -32,11 +32,22 @@ class JsonProperties(
         return v
     }
 
-    override fun setPropertyValue(type: KClass<*>, k: String, v: Any?) {
+    override fun setPropertyValue(type: KClass<*>, k: String, v: Any?): Unit = json.run {
         if (v === null) {
-            json.remove(k)
+            remove(k)
             return
         }
-        json.put(k, v)
+        when (type) {
+            Boolean::class -> put(k, v as Boolean)
+            Int::class -> put(k, v as Int)
+            Long::class -> put(k, v as Long)
+            Short::class -> put(k, v as Int)
+            Byte::class -> put(k, v as Int)
+            Float::class -> put(k, v as Double)
+            Double::class -> put(k, v as Double)
+            Char::class -> put(k, (v as Char).toString())
+            String::class -> put(k, v as String)
+            else -> put(k, v)
+        }
     }
 }

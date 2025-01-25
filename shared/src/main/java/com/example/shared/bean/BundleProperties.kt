@@ -34,25 +34,24 @@ open class BundleProperties(
         return v
     }
 
-    override fun setPropertyValue(type: KClass<*>, k: String, v: Any?) {
+    override fun setPropertyValue(type: KClass<*>, k: String, v: Any?): Unit = bundle.run {
         if (v === null) {
-            bundle.remove(k)
+            remove(k)
             return
         }
         when (type) {
-            Boolean::class -> bundle.putBoolean(k, v as Boolean)
-            Int::class -> bundle.putInt(k, v as Int)
-            Long::class -> bundle.putLong(k, v as Long)
-            Short::class -> bundle.putShort(k, v as Short)
-            Byte::class -> bundle.putByte(k, v as Byte)
-            Float::class -> bundle.putFloat(k, v as Float)
-            Double::class -> bundle.putDouble(k, v as Double)
-            Char::class -> bundle.putChar(k, v as Char)
-            String::class -> bundle.putString(k, v as String)
-            Bundle::class -> bundle.putBundle(k, v as Bundle)
-            Serializable::class -> bundle.putSerializable(k, v as Serializable)
-            else -> {
-            }
+            Boolean::class -> putBoolean(k, v as Boolean)
+            Int::class -> putInt(k, v as Int)
+            Long::class -> putLong(k, v as Long)
+            Short::class -> putShort(k, v as Short)
+            Byte::class -> putByte(k, v as Byte)
+            Float::class -> putFloat(k, v as Float)
+            Double::class -> putDouble(k, v as Double)
+            Char::class -> putChar(k, v as Char)
+            String::class -> putString(k, v as String)
+            Bundle::class -> putBundle(k, v as Bundle)
+            Serializable::class -> putSerializable(k, v as Serializable)
+            else -> {}
         }
     }
 }
