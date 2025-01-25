@@ -5,14 +5,18 @@ import android.content.Intent
 import android.os.Bundle
 import android.view.WindowInsets
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.ViewModel
 import com.example.mymediatest.R
 import com.example.shared.bean.BundleProperties
 import com.example.shared.page.BaseActivity
+import com.example.shared.utils.LateInitProxy
 import com.example.shared.utils.TAG
 import com.example.shared.utils.elseFalse
 import com.example.shared.utils.logI
+import com.example.shared.utils.parseClass
+import com.example.shared.utils.viewModel
 
-class CasePageActivity : BaseActivity() {
+class CasePageActivity : BaseActivity(), LateInitProxy.Owner {
 
     class CasePageData(
         bundle: Bundle? = null,
@@ -21,14 +25,7 @@ class CasePageActivity : BaseActivity() {
         private var fragmentClassName: String? by "fragmentClassName".property()
 
         var fragmentClass: Class<out Fragment>?
-            get() {
-                val fragmentClassName = fragmentClassName ?: return null
-                val clazz = runCatching {
-                    Class.forName(fragmentClassName)
-                }.getOrNull()
-                @Suppress("UNCHECKED_CAST")
-                return clazz as? Class<out Fragment>
-            }
+            get() = fragmentClassName?.parseClass()
             set(value) {
                 fragmentClassName = value?.name
             }
@@ -39,12 +36,29 @@ class CasePageActivity : BaseActivity() {
 
         var hideSystemUI: Boolean? by "hideSystemUI".property()
 
+        private var builderClassName: String? by "paramsClassName".property()
+
+        var builderClass: Class<out Fragment>?
+            get() = builderClassName?.parseClass()
+            set(value) {
+                builderClassName = value?.name
+            }
+
         var extras: Bundle? by "extras".property()
+
+        var paramsExtras: Bundle? by "paramsExtras".property()
     }
 
-    private val pageData by lazy {
-        CasePageData(intent.extras).also { pageData ->
-            TAG.logI { "update pageData ${pageData.pageName}" }
+    class PageModel : ViewModel() {
+
+        var pageData: CasePageData? = null
+    }
+
+    private var pageData: CasePageData by LateInitProxy()
+
+    override fun onPropertyInit(proxy: LateInitProxy<*>) {
+        when {
+            pageData === proxy.get() -> viewModel<PageModel>().pageData = pageData
         }
     }
 
@@ -60,7 +74,12 @@ class CasePageActivity : BaseActivity() {
 
     private fun initFragment() {
         ensureFragmentEmpty()
-        val fragmentClass = pageData.fragmentClass
+        pageData = CasePageData(intent.extras)
+        val fragmentClass = if (pageData.builderClass !== null && pageData.paramsExtras === null) {
+            pageData.builderClass!!
+        } else {
+            pageData.fragmentClass
+        }
         if (fragmentClass === null) {
             finish()
             return

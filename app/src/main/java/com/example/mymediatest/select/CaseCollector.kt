@@ -8,18 +8,20 @@ import kotlin.reflect.KClass
 object CaseCollector {
 
     val items = listOf(
-        Test001VideoView::class,
-        Test002VideoSurfaceView::class,
-        Test003VideoTextureView::class,
-        Test004ExoPlayerView::class,
-        Test005ExoSurfaceView::class,
-        Test006ExoTextureView::class,
-    ).map {
-        it.asCaseItem
-    }
+        Test001VideoView::class.asCaseItem,
+        Test002MediaPlayer::class asCaseItem Test002MediaPlayer.ParamsBuilder::class,
+        Test003ExoPlayer::class asCaseItem Test003ExoPlayer.ParamsBuilder::class,
+    )
 
     private val KClass<out Fragment>.asCaseItem: CaseItem
         get() = object : CaseItem {
             override val fragmentClass = this@asCaseItem
         }
+
+    private infix fun KClass<out Fragment>.asCaseItem(builder: KClass<out Fragment>): CaseItem {
+        return object : CaseItem {
+            override val fragmentClass = this@asCaseItem
+            override val builderClass = builder
+        }
+    }
 }

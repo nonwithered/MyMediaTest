@@ -29,7 +29,13 @@ class CaseSelectActivity : BaseActivity() {
         val hideSystemUI: Boolean
             get() = true
 
+        val builderClass: KClass<out Fragment>?
+            get() = null
+
         val extras: Bundle?
+            get() = null
+
+        val paramsExtras: Bundle?
             get() = null
     }
 
@@ -38,10 +44,6 @@ class CaseSelectActivity : BaseActivity() {
 
     override fun onViewCreated(savedInstanceState: Bundle?) {
         super.onViewCreated(savedInstanceState)
-        initList()
-    }
-
-    private fun initList() {
         val listView: RecyclerView = findView(R.id.list_view)!!
         listView.layoutManager = LinearLayoutManager(context, RecyclerView.VERTICAL, false)
         listView.adapter = BaseViewAdapter.simple(
@@ -65,6 +67,8 @@ class CaseSelectActivity : BaseActivity() {
                 pageData.hideActionBar = item.hideActionBar
                 pageData.hideSystemUI = item.hideSystemUI
                 pageData.extras = item.extras
+                pageData.builderClass = item.builderClass?.java
+                pageData.paramsExtras = item.paramsExtras
                 CasePageActivity.start(context, pageData)
             }
         }

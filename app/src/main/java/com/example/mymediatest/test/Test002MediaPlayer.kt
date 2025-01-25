@@ -2,22 +2,70 @@ package com.example.mymediatest.test
 
 import android.os.Bundle
 import android.view.View
+import androidx.annotation.LayoutRes
+import com.example.mymediatest.R
 import com.example.mymediatest.player.BasePlayer
 import com.example.mymediatest.player.MediaPlayerHelper
+import com.example.mymediatest.select.CasePageActivity.PageModel
+import com.example.mymediatest.select.CaseParamsFragment
 import com.example.mymediatest.test.base.PlayerFragment
 import com.example.mymediatest.test.base.PlayerState
 import com.example.shared.bean.BundleProperties
 import com.example.shared.utils.TAG
 import com.example.shared.utils.bind
+import com.example.shared.utils.getValue
 import com.example.shared.utils.logD
+import com.example.shared.utils.viewModel
 
-abstract class Test000MediaPlayer : PlayerFragment<BasePlayer.Holder>() {
+class Test002MediaPlayer : PlayerFragment<BasePlayer.Holder>() {
 
-    class Params() : BundleProperties() {
+    internal enum class Type(
+        @LayoutRes
+        val playerLayoutId: Int,
+    ) {
+        SURFACE(
+            R.layout.common_player_surface_view,
+        ),
+        TEXTURE(
+            R.layout.common_player_texture_view,
+        ),
+    }
+    
+    internal class Params(
+        bundle: Bundle = Bundle(),
+    ) : BundleProperties(bundle) {
 
-        val layoutId: Int? by "layout_id".property()
+        private var viewTypeName: String? by "viewTypeName".property()
+
+        var viewType: Type
+            get() = Type.valueOf(viewTypeName!!)
+            set(value) {
+                viewTypeName = value.name
+            }
     }
 
+    internal class ParamsBuilder : CaseParamsFragment<Params>(Params()) {
+
+        init {
+            option(
+                *Type.entries.toTypedArray()
+            ) {
+                caseParams.viewType = it
+            }
+        }
+    }
+
+    private val pageData by {
+        requireActivity().viewModel<PageModel>().pageData!!
+    }
+    
+    private val params by {
+        Params(pageData.paramsExtras!!)
+    }
+
+    override val playerLayoutId: Int
+        get() = params.viewType.playerLayoutId
+    
     private val player by lazy {
         MediaPlayerHelper(requireContext())
     }

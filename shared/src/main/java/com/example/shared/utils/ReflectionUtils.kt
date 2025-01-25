@@ -1,5 +1,6 @@
 package com.example.shared.utils
 
+import androidx.fragment.app.Fragment
 import kotlin.reflect.KClass
 
 @JvmName("newInstanceVarargClass")
@@ -68,4 +69,13 @@ inline fun <reified T : Any> newInstance(vararg args: Any): T? {
 @JvmName("newInstanceVarargDefault")
 inline fun <reified T : Any> newInstanceDefault(): T? {
     return T::class.newInstanceDefault()
+}
+
+fun <T : Any> CharSequence.parseClass(): Class<T>? {
+    return runCatching {
+        @Suppress("UNCHECKED_CAST")
+        Class.forName(this.toString()) as? Class<T>
+    }.onFailure { e ->
+        TAG.logE(e) { "parseClass $this" }
+    }.getOrNull()
 }

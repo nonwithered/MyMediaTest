@@ -1,6 +1,5 @@
 package com.example.shared.bean
 
-import android.annotation.SuppressLint
 import android.os.Bundle
 import android.os.Parcelable
 import java.io.Serializable

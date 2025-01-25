@@ -20,7 +20,7 @@ class PlayerSurfaceView(
 
     override fun onPropertyInit(proxy: LateInitProxy<*>) {
         when {
-            proxy == player -> player.onInit(this)
+            player === proxy.get() -> player.onInit(this)
         }
     }
 
