@@ -37,30 +37,24 @@ abstract class PlayerFragment<T : Any> : BaseFragment() {
         viewModel()
     }
 
-    protected val playerView: T by lazy {
-        @Suppress("UNCHECKED_CAST")
-        view?.findView<View>(R.id.player_view)!! as T
-    }
+    @get:Suppress("UNCHECKED_CAST")
+    protected val playerView: T
+        get() = view?.findView<View>(R.id.player_view)!! as T
 
-    private val playerState by lazy {
-        view?.findView<View>(R.id.player_state)!!
-    }
+    private val playerState: View
+        get() = view?.findView<View>(R.id.player_state)!!
 
-    private val playerLoad by lazy {
-        view?.findView<View>(R.id.player_load)!!
-    }
+    private val playerLoad: View
+        get() = view?.findView<View>(R.id.player_load)!!
 
-    private val playerProgressBar by lazy {
-        view?.findView<PlayerProgressBar>(R.id.player_progress_bar)!!
-    }
+    private val playerProgressBar: PlayerProgressBar
+        get() = view?.findView<PlayerProgressBar>(R.id.player_progress_bar)!!
 
-    private val playerContainer by lazy {
-        view?.findView<View>(R.id.player_container)!!
-    }
+    private val playerContainer: View
+        get() = view?.findView<View>(R.id.player_container)!!
 
-    private val actionContainer by lazy {
-        view?.findView<View>(R.id.action_container)!!
-    }
+    private val actionContainer: View
+        get() = view?.findView<View>(R.id.action_container)!!
 
     private val launcherGetContent = registerForActivityResult(ActivityResultContracts.GetContent()) {
         TAG.logI { "GetContent $it" }
