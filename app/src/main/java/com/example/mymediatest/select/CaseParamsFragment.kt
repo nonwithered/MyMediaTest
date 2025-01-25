@@ -54,7 +54,7 @@ open class CaseParamsFragment<T : BundleProperties>(
         val listView: RecyclerView = view.findView(R.id.list_view)!!
         listView.layoutManager = LinearLayoutManager(context, RecyclerView.VERTICAL, false)
         listView.adapter = BaseViewAdapter.simple(
-            Options::class to ItemViewHolder::class cross R.layout.param_item__view,
+            Options::class to ItemViewHolder::class cross R.layout.params_option_spinner,
         ) {
             paramList
         }
@@ -85,7 +85,7 @@ open class CaseParamsFragment<T : BundleProperties>(
             defer {
                 param = null
             }
-            spinner.adapter = ArrayAdapter(context, android.R.layout.simple_spinner_item, item.list)
+            spinner.adapter = ArrayAdapter(context, R.layout.params_option_item, item.list)
             defer {
                 spinner.adapter = null
             }
