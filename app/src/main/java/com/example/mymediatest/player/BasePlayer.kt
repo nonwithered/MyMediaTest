@@ -1,18 +1,23 @@
 package com.example.mymediatest.player
 
 import android.content.Context
-import android.net.Uri
 import android.view.View
 import com.example.shared.utils.ViewSupport
-import kotlinx.coroutines.flow.MutableStateFlow
 
-abstract class BasePlayer(
+abstract class BasePlayer private constructor(
     protected val context: Context,
-) {
+    protected val viewAdapter: ViewSupport.Adapter<View>,
+) : ViewSupport by viewAdapter {
 
-    val uri = MutableStateFlow(null as Uri?)
+    protected constructor(
+        context: Context,
+    ) : this(
+        context,
+        ViewSupport.Adapter(),
+    )
 
     open fun onInit(view: View) {
+        viewAdapter.view = view
     }
 
     open fun onMeasure(

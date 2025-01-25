@@ -6,6 +6,7 @@ import android.media.AudioAttributes
 import android.media.AudioFocusRequest
 import android.media.AudioManager
 import android.media.MediaPlayer
+import android.net.Uri
 import android.view.Surface
 import android.view.SurfaceHolder
 import android.view.SurfaceView
@@ -13,25 +14,20 @@ import android.view.TextureView
 import android.view.View
 import android.widget.MediaController
 import com.example.shared.utils.TAG
-import com.example.shared.utils.ViewSupport
 import com.example.shared.utils.asConst
-import com.example.shared.utils.autoAttachScope
 import com.example.shared.utils.logD
 import com.example.shared.utils.logI
 import com.example.shared.utils.runCatchingTyped
 import com.example.shared.utils.systemService
-import com.example.shared.utils.bind
 import kotlinx.coroutines.flow.MutableStateFlow
 import java.io.IOException
 
 /**
  * @see android.widget.VideoView
  */
-class MediaPlayerHelper private constructor(
+class MediaPlayerHelper(
     context: Context,
-    private val viewAdapter: ViewSupport.Adapter<View>,
 ) : BasePlayer(context),
-    ViewSupport by viewAdapter,
     SurfaceHolder.Callback2,
     TextureView.SurfaceTextureListener,
     MediaController.MediaPlayerControl,
@@ -42,8 +38,6 @@ class MediaPlayerHelper private constructor(
     MediaPlayer.OnInfoListener,
     MediaPlayer.OnBufferingUpdateListener {
 
-    constructor(context: Context) : this(context, ViewSupport.Adapter())
-
     enum class State {
         ERROR,
         IDLE,
@@ -53,6 +47,16 @@ class MediaPlayerHelper private constructor(
         PAUSED,
         PLAYBACK_COMPLETED,
     }
+
+    var uri: Uri? = null
+        set(value) {
+            TAG.logD { "uri set $value" }
+            field = value
+            seekWhenPrepared = 0
+            openVideo()
+            requestLayout()
+            invalidate()
+        }
 
     private val _currentState = MutableStateFlow(State.IDLE)
     val currentState = _currentState.asConst
@@ -113,18 +117,12 @@ class MediaPlayerHelper private constructor(
 
     override fun onInit(view: View) {
         super.onInit(view)
-        viewAdapter.view = view
         when (view) {
-            is SurfaceView -> view.holder.addCallback(this)
-            is TextureView -> view.surfaceTextureListener = this
-        }
-        view.autoAttachScope.launch {
-            bind(uri) {
-                TAG.logD { "uri get $it" }
-                seekWhenPrepared = 0
-                openVideo()
-                requestLayout()
-                invalidate()
+            is SurfaceView -> {
+                view.holder.addCallback(this)
+            }
+            is TextureView -> {
+                view.surfaceTextureListener = this
             }
         }
     }
@@ -193,7 +191,7 @@ class MediaPlayerHelper private constructor(
     }
 
     private fun openVideo() {
-        val uri = uri.value ?: return
+        val uri = uri ?: return
         val surface = surface ?: return
         TAG.logI { "openVideo $uri" }
         release(false)

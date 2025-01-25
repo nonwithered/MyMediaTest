@@ -15,6 +15,8 @@ class TestCaseCollector : CaseCollector {
         Test002VideoSurfaceView::class,
         Test003VideoTextureView::class,
         Test004ExoPlayerView::class,
+        Test005ExoSurfaceView::class,
+        Test006ExoTextureView::class,
     ).map {
         it.asCaseItem
     }

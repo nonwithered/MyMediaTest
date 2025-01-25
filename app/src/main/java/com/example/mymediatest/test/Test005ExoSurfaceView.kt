@@ -4,9 +4,9 @@ import android.os.Bundle
 import android.view.View
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
-import androidx.media3.exoplayer.ExoPlayer
-import androidx.media3.ui.PlayerView
 import com.example.mymediatest.R
+import com.example.mymediatest.player.BasePlayer
+import com.example.mymediatest.player.ExoPlayerHelper
 import com.example.mymediatest.test.base.PlayerFragment
 import com.example.mymediatest.test.base.PlayerState
 import com.example.shared.utils.TAG
@@ -14,10 +14,10 @@ import com.example.shared.utils.bind
 import com.example.shared.utils.elseZero
 import com.example.shared.utils.logD
 
-class Test004ExoPlayerView : PlayerFragment<PlayerView>(), Player.Listener {
+open class Test005ExoSurfaceView : PlayerFragment<BasePlayer.Holder>(), Player.Listener {
 
     override val playerLayoutId: Int
-        get() = R.layout.common_exo_player_view
+        get() = R.layout.common_player_surface_view
 
     private lateinit var player: Player
 
@@ -25,12 +25,9 @@ class Test004ExoPlayerView : PlayerFragment<PlayerView>(), Player.Listener {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        player = ExoPlayer.Builder(requireContext())
-            .build()
-            .also {
-                it.playWhenReady = false
-                playerView.player = it
-            }
+        player = ExoPlayerHelper(requireContext()).also {
+            playerView.player = it
+        }
         bind(playerVM.state) {
             onStateChange(it)
         }

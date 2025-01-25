@@ -28,7 +28,7 @@ open class Test002VideoSurfaceView : PlayerFragment<BasePlayer.Holder>() {
         }
         bind(playerVM.contentUri) {
             TAG.logD { "contentUri get $it" }
-            player.uri.value = it
+            player.uri = it
             if (it === null) {
                 playerVM.state.value = PlayerState.IDLE
             }
