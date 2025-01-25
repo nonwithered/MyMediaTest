@@ -20,38 +20,52 @@ import com.example.shared.utils.logD
 
 class Test003ExoPlayer : PlayerParamsFragment<Test003ExoPlayer.Params, View>(), Player.Listener {
 
+    interface PlayerFactory {
+
+        fun createPlayer(context: Context, view: View): Player
+    }
+
     enum class Type(
         @LayoutRes
         val playerLayoutId: Int,
-        val createPlayer: (Context, View) -> Player,
-    ) {
-        RAW(
+    ) : PlayerFactory {
+
+        DEFAULT(
             R.layout.common_exo_player_view,
-            { context, view ->
-                ExoPlayer.Builder(context)
-                    .build()
-                    .also {
+        ) {
+
+            override fun createPlayer(context: Context, view: View): Player {
+                view as PlayerView
+                return ExoPlayer.Builder(context).build().also {
                         it.playWhenReady = false
-                        (view as PlayerView).player = it
+                        view.player = it
                     }
-            },
-        ),
+            }
+        },
+
         SURFACE(
             R.layout.common_player_surface_view,
-            { context, view ->
-                ExoPlayerHelper(context).also {
-                    (view as BasePlayer.Holder).player = it
+        ) {
+
+            override fun createPlayer(context: Context, view: View): Player {
+                view as BasePlayer.Holder
+                return ExoPlayerHelper(context).also {
+                    view.player = it
                 }
-            },
-        ),
+            }
+        },
+
         TEXTURE(
             R.layout.common_player_texture_view,
-            { context, view ->
-                ExoPlayerHelper(context).also {
-                    (view as BasePlayer.Holder).player = it
+        ) {
+
+            override fun createPlayer(context: Context, view: View): Player {
+                view as BasePlayer.Holder
+                return ExoPlayerHelper(context).also {
+                    view.player = it
                 }
-            },
-        ),
+            }
+        },
     }
 
     class Params(

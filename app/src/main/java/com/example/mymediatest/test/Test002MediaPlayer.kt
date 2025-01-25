@@ -18,9 +18,11 @@ class Test002MediaPlayer : PlayerParamsFragment<Test002MediaPlayer.Params, BaseP
         @LayoutRes
         val playerLayoutId: Int,
     ) {
+
         SURFACE(
             R.layout.common_player_surface_view,
         ),
+
         TEXTURE(
             R.layout.common_player_texture_view,
         ),
