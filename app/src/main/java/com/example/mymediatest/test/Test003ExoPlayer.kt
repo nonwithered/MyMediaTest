@@ -10,7 +10,7 @@ import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.PlayerView
 import com.example.mymediatest.R
 import com.example.mymediatest.player.BasePlayer
-import com.example.mymediatest.player.ExoPlayerHelper
+import com.example.mymediatest.player.wrapper.ExoPlayerHelper
 import com.example.mymediatest.test.base.PlayerParamsFragment
 import com.example.mymediatest.test.base.PlayerState
 import com.example.shared.utils.TAG

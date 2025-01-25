@@ -1,4 +1,4 @@
-package com.example.mymediatest.player
+package com.example.mymediatest.player.wrapper
 
 import android.content.Context
 import android.view.SurfaceView
@@ -7,6 +7,8 @@ import android.view.View
 import androidx.media3.common.Player
 import androidx.media3.common.VideoSize
 import androidx.media3.exoplayer.ExoPlayer
+import com.example.mymediatest.player.BasePlayer
+import com.example.mymediatest.player.utils.VideoViewHelper
 
 /**
  * @see androidx.media3.ui.PlayerView

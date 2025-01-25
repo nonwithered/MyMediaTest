@@ -5,7 +5,7 @@ import android.view.View
 import androidx.annotation.LayoutRes
 import com.example.mymediatest.R
 import com.example.mymediatest.player.BasePlayer
-import com.example.mymediatest.player.MediaPlayerHelper
+import com.example.mymediatest.player.wrapper.MediaPlayerHelper
 import com.example.mymediatest.test.base.PlayerParamsFragment
 import com.example.mymediatest.test.base.PlayerState
 import com.example.shared.utils.TAG

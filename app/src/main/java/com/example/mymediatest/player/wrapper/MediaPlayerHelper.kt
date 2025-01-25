@@ -1,4 +1,4 @@
-package com.example.mymediatest.player
+package com.example.mymediatest.player.wrapper
 
 import android.content.Context
 import android.graphics.SurfaceTexture
@@ -13,6 +13,8 @@ import android.view.SurfaceView
 import android.view.TextureView
 import android.view.View
 import android.widget.MediaController
+import com.example.mymediatest.player.BasePlayer
+import com.example.mymediatest.player.utils.VideoViewHelper
 import com.example.shared.utils.TAG
 import com.example.shared.utils.asConst
 import com.example.shared.utils.logD
