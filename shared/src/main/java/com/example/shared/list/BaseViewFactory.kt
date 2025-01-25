@@ -5,8 +5,8 @@ import androidx.annotation.LayoutRes
 import com.example.shared.utils.Tuple3
 import com.example.shared.utils.cross
 import com.example.shared.utils.firstOrNull
-import com.example.shared.utils.newInstance
-import com.example.shared.utils.newInstanceDefault
+import com.example.shared.utils.newInstanceDefaultSafe
+import com.example.shared.utils.newInstanceSafe
 import kotlin.reflect.KClass
 
 interface BaseViewFactory<in T, out VH: BaseViewHolder<*>> {
@@ -26,9 +26,9 @@ interface BaseViewFactory<in T, out VH: BaseViewHolder<*>> {
             val (itemType, vhType, id) = tuple
             val create = { v: View ->
                 firstOrNull(
-                    { vhType.newInstance(v) },
-                    { vhType.newInstance(View::class to v) },
-                    { vhType.newInstanceDefault() },
+                    { vhType.java.newInstanceSafe(v.javaClass to v).getOrNull() },
+                    { vhType.newInstanceSafe(View::class to v).getOrNull() },
+                    { vhType.newInstanceDefaultSafe().getOrNull() },
                 )!!
             }
             return object : BaseViewFactory<Any?, VH> {

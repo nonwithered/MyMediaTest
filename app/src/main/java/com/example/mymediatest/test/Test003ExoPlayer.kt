@@ -14,7 +14,6 @@ import com.example.mymediatest.player.ExoPlayerHelper
 import com.example.mymediatest.select.CaseParamsFragment
 import com.example.mymediatest.test.base.PlayerFragment
 import com.example.mymediatest.test.base.PlayerState
-import com.example.shared.bean.BundleProperties
 import com.example.shared.utils.TAG
 import com.example.shared.utils.bind
 import com.example.shared.utils.elseZero
@@ -59,15 +58,9 @@ class Test003ExoPlayer : PlayerFragment<View>(), Player.Listener {
 
     internal class Params(
         bundle: Bundle = Bundle(),
-    ) : BundleProperties(bundle) {
+    ) : BaseParams(bundle) {
 
-        private var viewTypeName: String? by "viewTypeName".property()
-
-        var viewType: Type
-            get() = Type.valueOf(viewTypeName!!)
-            set(value) {
-                viewTypeName = value.name
-            }
+        var type: Type by Type::class.adapt()
     }
 
     internal class ParamsBuilder : CaseParamsFragment<Params>(Params()) {
@@ -76,7 +69,7 @@ class Test003ExoPlayer : PlayerFragment<View>(), Player.Listener {
             option(
                 *Type.entries.toTypedArray()
             ) {
-                caseParams.viewType = it
+                caseParams.type = it
             }
         }
     }
@@ -86,7 +79,7 @@ class Test003ExoPlayer : PlayerFragment<View>(), Player.Listener {
     }
 
     override val playerLayoutId: Int
-        get() = params.viewType.playerLayoutId
+        get() = params.type.playerLayoutId
 
     private lateinit var player: Player
 
@@ -94,7 +87,7 @@ class Test003ExoPlayer : PlayerFragment<View>(), Player.Listener {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        player = params.viewType.createPlayer(requireContext(), playerView)
+        player = params.type.createPlayer(requireContext(), playerView)
         defer {
             player.release()
         }

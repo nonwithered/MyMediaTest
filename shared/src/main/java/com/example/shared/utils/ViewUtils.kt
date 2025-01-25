@@ -36,9 +36,9 @@ inline fun <reified T : Any> View.tag(@IdRes key: Int, crossinline block: () -> 
 inline fun <reified T : Any> View.tag(@IdRes key: Int): T {
     return tag(key) {
         firstOrNull(
-            { newInstance(this) },
-            { newInstance(View::class to this) },
-            { newInstanceDefault() },
+            { T::class.java.newInstanceSafe(this.javaClass to this).getOrNull() },
+            { T::class.newInstanceSafe(View::class to this).getOrNull() },
+            { T::class.newInstanceDefaultSafe().getOrNull() },
         )!!
     }
 }

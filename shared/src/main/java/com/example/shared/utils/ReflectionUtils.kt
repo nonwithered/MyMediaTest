@@ -1,81 +1,41 @@
 package com.example.shared.utils
 
-import androidx.fragment.app.Fragment
 import kotlin.reflect.KClass
 
-@JvmName("newInstanceVarargClass")
-fun <T : Any> Class<T>.newInstance(vararg args: Pair<Class<*>, *>): T? {
+private fun mapKClassPairToJavaClass(vararg args: Pair<KClass<*>, *>): Array<Pair<Class<*>, *>> {
+    return mapOf(*args).mapKeys { it.key.java }.toPairs().toTypedArray()
+}
+
+fun <T : Any> Class<T>.newInstanceSafe(vararg args: Pair<Class<*>, *>): Result<T> {
     return mapOf(*args).runCatching {
         getConstructor(*keys.toTypedArray()).newInstance(*values.toTypedArray())
-    }.onFailure { e ->
-        TAG.logE(e) { "newInstance ${args.toList()}" }
-    }.getOrNull()
+    }
 }
 
-@JvmName("newInstanceVarargKClass")
-fun <T : Any> Class<T>.newInstance(vararg args: Pair<KClass<*>, *>): T? {
-    return newInstance(*mapOf(*args).mapKeys { it.key.java }.toPairs().toTypedArray())
+fun <T : Any> KClass<T>.newInstanceSafe(vararg args: Pair<KClass<*>, *>): Result<T> {
+    return java.newInstanceSafe(*mapKClassPairToJavaClass(*args))
 }
 
-@JvmName("newInstanceVarargAny")
-fun <T : Any> Class<T>.newInstance(vararg args: Any): T? {
-    return newInstance(*args.map { it.javaClass to it }.toTypedArray())
-}
-
-@JvmName("newInstanceVarargDefault")
-fun <T : Any> Class<T>.newInstanceDefault(): T? {
+fun <T : Any> KClass<T>.newInstanceDefaultSafe(): Result<T> {
     return runCatching {
-        getConstructor().newInstance()
-    }.onFailure { e ->
-        TAG.logE(e) { "newInstanceDefault" }
-    }.getOrNull()
-}
-
-@JvmName("newInstanceVarargClass")
-fun <T : Any> KClass<T>.newInstance(vararg args: Pair<Class<*>, *>): T? {
-    return java.newInstance(*args)
-}
-
-@JvmName("newInstanceVarargKClass")
-fun <T : Any> KClass<T>.newInstance(vararg args: Pair<KClass<*>, *>): T? {
-    return java.newInstance(*args)
-}
-
-@JvmName("newInstanceVarargAny")
-fun <T : Any> KClass<T>.newInstance(vararg args: Any): T? {
-    return java.newInstance(*args)
-}
-
-@JvmName("newInstanceVarargDefault")
-fun <T : Any> KClass<T>.newInstanceDefault(): T? {
-    return java.newInstanceDefault()
-}
-
-@JvmName("newInstanceVarargClass")
-inline fun <reified T : Any> newInstance(vararg args: Pair<Class<*>, *>): T? {
-    return T::class.newInstance(*args)
-}
-
-@JvmName("newInstanceVarargKClass")
-inline fun <reified T : Any> newInstance(vararg args: Pair<KClass<*>, *>): T? {
-    return T::class.newInstance(*args)
-}
-
-@JvmName("newInstanceVarargAny")
-inline fun <reified T : Any> newInstance(vararg args: Any): T? {
-    return T::class.newInstance(*args)
-}
-
-@JvmName("newInstanceVarargDefault")
-inline fun <reified T : Any> newInstanceDefault(): T? {
-    return T::class.newInstanceDefault()
+        java.getConstructor().newInstance()
+    }
 }
 
 fun <T : Any> CharSequence.parseClass(): Class<T>? {
     return runCatching {
         @Suppress("UNCHECKED_CAST")
         Class.forName(this.toString()) as? Class<T>
-    }.onFailure { e ->
-        TAG.logE(e) { "parseClass $this" }
     }.getOrNull()
+}
+
+fun <T : Any, R> Class<T>.invokeStaticMethodSafe(name: String, vararg args: Pair<Class<*>, *>): Result<R> {
+    return mapOf(*args).runCatching {
+        @Suppress("UNCHECKED_CAST")
+        getDeclaredMethod(name, *keys.toTypedArray()).invoke(null, *values.toTypedArray()) as R
+    }
+}
+
+fun <T : Any, R> KClass<T>.invokeStaticMethodSafe(name: String, vararg args: Pair<KClass<*>, *>): Result<R> {
+    return java.invokeStaticMethodSafe(name, *mapKClassPairToJavaClass(*args))
 }

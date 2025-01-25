@@ -9,24 +9,59 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.LayoutRes
 import com.example.mymediatest.R
 import com.example.mymediatest.select.CasePageActivity.PageModel
+import com.example.shared.bean.BasePropertyOwner
+import com.example.shared.bean.BundleProperties
+import com.example.shared.bean.PropertyProxy
 import com.example.shared.page.BaseFragment
 import com.example.shared.utils.AutoLauncher
 import com.example.shared.utils.TAG
 import com.example.shared.utils.bind
 import com.example.shared.utils.connect
 import com.example.shared.utils.findView
-import com.example.shared.utils.getValue
+import com.example.shared.utils.invokeStaticMethodSafe
 import com.example.shared.utils.logI
 import com.example.shared.utils.viewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
+import kotlin.reflect.KClass
+import kotlin.reflect.KProperty
 
 abstract class PlayerFragment<T : Any> : BaseFragment() {
 
     private companion object {
 
         private const val PROGRESS_BAR_REFRESH_INTERVAL = 500L
+    }
+
+    internal open class BaseParams(
+        bundle: Bundle = Bundle(),
+    ) : BundleProperties(bundle) {
+
+        protected data class EnumAdapter<T : Enum<T>>(
+            private val type: KClass<T>,
+            private val proxy: PropertyProxy<Any, String>,
+        ) {
+
+            operator fun getValue(owner: BaseParams, property: KProperty<*>): T {
+                return type.invokeStaticMethodSafe<T, T>(
+                    "valueOf",
+                    String::class to proxy.getValue(owner)!!,
+                ).getOrThrow()
+            }
+
+            operator fun setValue(owner: BaseParams, property: KProperty<*>, v: T) {
+                proxy.setValue(owner, v.name)
+            }
+
+        }
+
+        protected inline fun <reified T : Enum<T>> KClass<T>.adapt(): EnumAdapter<T> {
+            return EnumAdapter(
+                T::class,
+                java.simpleName.property(),
+            )
+        }
     }
 
     @get:LayoutRes
