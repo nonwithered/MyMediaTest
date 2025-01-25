@@ -20,7 +20,7 @@ class PlayerTextureView(
 
     override fun onPropertyInit(proxy: LateInitProxy<*>) {
         when {
-            proxy == player -> player.init(this)
+            proxy == player -> player.onInit(this)
         }
     }
 
@@ -29,8 +29,11 @@ class PlayerTextureView(
     }
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
-        player.onMeasure(widthMeasureSpec, heightMeasureSpec) { width, height ->
+        val result = player.onMeasure(widthMeasureSpec, heightMeasureSpec) { width, height ->
             setMeasuredDimension(width, height)
+        }
+        if (!result) {
+            super.onMeasure(widthMeasureSpec, heightMeasureSpec)
         }
     }
 }

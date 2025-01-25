@@ -1,14 +1,19 @@
 package com.example.mymediatest.player
 
 import android.content.Context
+import android.graphics.SurfaceTexture
 import android.media.AudioAttributes
 import android.media.AudioFocusRequest
 import android.media.AudioManager
 import android.media.MediaPlayer
 import android.view.Surface
+import android.view.SurfaceHolder
+import android.view.SurfaceView
+import android.view.TextureView
 import android.view.View
 import android.widget.MediaController
 import com.example.shared.utils.TAG
+import com.example.shared.utils.ViewSupport
 import com.example.shared.utils.asConst
 import com.example.shared.utils.autoAttachScope
 import com.example.shared.utils.logD
@@ -22,10 +27,13 @@ import java.io.IOException
 /**
  * @see android.widget.VideoView
  */
-class MediaPlayerHelper(
+class MediaPlayerHelper private constructor(
     context: Context,
-) :
-    BasePlayer(context),
+    private val viewAdapter: ViewSupport.Adapter<View>,
+) : BasePlayer(context),
+    ViewSupport by viewAdapter,
+    SurfaceHolder.Callback2,
+    TextureView.SurfaceTextureListener,
     MediaController.MediaPlayerControl,
     MediaPlayer.OnPreparedListener,
     MediaPlayer.OnVideoSizeChangedListener,
@@ -33,6 +41,8 @@ class MediaPlayerHelper(
     MediaPlayer.OnErrorListener,
     MediaPlayer.OnInfoListener,
     MediaPlayer.OnBufferingUpdateListener {
+
+    constructor(context: Context) : this(context, ViewSupport.Adapter())
 
     enum class State {
         ERROR,
@@ -49,7 +59,20 @@ class MediaPlayerHelper(
 
     private var targetState = State.IDLE
 
-    override var surface: Surface? = null
+    private var videoSize = 0 to 0
+        set(value) {
+            field = value
+            val (videoWidth, videoHeight) = value
+            if (videoWidth != 0 && videoHeight != 0) {
+                val view = viewAdapter.view
+                if (view is SurfaceView) {
+                    view.holder.setFixedSize(videoWidth, videoHeight)
+                }
+                requestLayout()
+            }
+        }
+
+    private var surface: Surface? = null
         set(value) {
             field = value
             TAG.logD { "surface set $value" }
@@ -60,12 +83,11 @@ class MediaPlayerHelper(
             }
         }
 
-    override var surfaceSize
-        get() = super.surfaceSize
+    private var surfaceSize = 0 to 0
         set(value) {
-            super.surfaceSize = value
+            field = value
             val isValidState = targetState == State.PLAYING
-            val hasValidSize = videoSize.value == value
+            val hasValidSize = videoSize == value
             if (mediaPlayer !== null && isValidState && hasValidSize) {
                 seekWhenPrepared.takeIf { pos -> pos != 0 }?.let { pos -> seekTo(pos) }
                 start()
@@ -91,6 +113,11 @@ class MediaPlayerHelper(
 
     override fun onInit(view: View) {
         super.onInit(view)
+        viewAdapter.view = view
+        when (view) {
+            is SurfaceView -> view.holder.addCallback(this)
+            is TextureView -> view.surfaceTextureListener = this
+        }
         view.autoAttachScope.launch {
             bind(uri) {
                 TAG.logD { "uri get $it" }
@@ -100,6 +127,19 @@ class MediaPlayerHelper(
                 invalidate()
             }
         }
+    }
+
+    override fun onMeasure(
+        widthMeasureSpec: Int,
+        heightMeasureSpec: Int,
+        setMeasuredDimension: (width: Int, height: Int) -> Unit,
+    ): Boolean {
+        val (width, height) = VideoViewHelper.onMeasure(
+            measureSpec = widthMeasureSpec to heightMeasureSpec,
+            videoSize = videoSize,
+        )
+        setMeasuredDimension(width, height)
+        return true
     }
 
     private val isInPlaybackState: Boolean
@@ -113,13 +153,13 @@ class MediaPlayerHelper(
 
     override fun onPrepared(mp: MediaPlayer) {
         _currentState.value = State.PREPARED
-        videoSize.value = mp.videoWidth to mp.videoHeight
+        videoSize = mp.videoWidth to mp.videoHeight
         seekWhenPrepared.takeIf { pos -> pos != 0 }?.let { pos -> seekTo(pos) }
-        if (videoSize.value.first == 0 || videoSize.value.second == 0) {
+        if (videoSize.first == 0 || videoSize.second == 0) {
             if (targetState == State.PLAYING) {
                 start()
             }
-        } else if (videoSize.value == surfaceSize) {
+        } else if (videoSize == surfaceSize) {
             if (targetState == State.PLAYING) {
                 start()
             }
@@ -127,7 +167,7 @@ class MediaPlayerHelper(
     }
 
     override fun onVideoSizeChanged(mp: MediaPlayer, width: Int, height: Int) {
-        videoSize.value = mp.videoWidth to mp.videoHeight
+        videoSize = mp.videoWidth to mp.videoHeight
     }
 
     override fun onCompletion(mp: MediaPlayer?) {
@@ -284,5 +324,36 @@ class MediaPlayerHelper(
             }
         }
         return audioSession
+    }
+
+    override fun surfaceCreated(holder: SurfaceHolder) {
+        surface = holder.surface
+    }
+
+    override fun surfaceDestroyed(holder: SurfaceHolder) {
+        surface = null
+    }
+
+    override fun surfaceChanged(holder: SurfaceHolder, format: Int, width: Int, height: Int) {
+        surfaceSize = width to height
+    }
+
+    override fun surfaceRedrawNeeded(holder: SurfaceHolder) {
+    }
+
+    override fun onSurfaceTextureAvailable(texture: SurfaceTexture, width: Int, height: Int) {
+        surface = Surface(texture)
+    }
+
+    override fun onSurfaceTextureDestroyed(texture: SurfaceTexture): Boolean {
+        surface = null
+        return true
+    }
+
+    override fun onSurfaceTextureSizeChanged(texture: SurfaceTexture, width: Int, height: Int) {
+        surfaceSize = width to height
+    }
+
+    override fun onSurfaceTextureUpdated(texture: SurfaceTexture) {
     }
 }
