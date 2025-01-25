@@ -2,6 +2,7 @@ package com.example.shared.bean
 
 import com.example.shared.utils.equalsCombined
 import com.example.shared.utils.hashCodeCombined
+import com.example.shared.utils.plusAssign
 import kotlin.reflect.KClass
 import kotlin.reflect.KProperty
 
@@ -59,6 +60,9 @@ inline fun <V : Any, reified T : V> createPropertyProxy(owner: BasePropertyOwner
 
 abstract class BaseProperties<V : Any> : BasePropertyOwner<V> {
 
+    protected val label: String
+        get() = javaClass.simpleName
+
     protected val proxyList: MutableList<PropertyProxy<V, out V>> = mutableListOf()
 
     private val propertyList: List<V?>
@@ -84,5 +88,28 @@ abstract class BaseProperties<V : Any> : BasePropertyOwner<V> {
             return false
         }
         return propertyList equalsCombined other.propertyList
+    }
+
+    override fun toString(): String {
+        return buildString {
+            val builder = this
+            builder += label
+            builder += "["
+            proxyList.dump(builder)
+            builder += "]"
+        }
+    }
+
+    private fun PropertyProxy<V, out V>.dump(builder: Appendable) {
+        builder += k
+        builder += "="
+        builder += getValue(this@BaseProperties).toString()
+    }
+
+    private fun Collection<PropertyProxy<V, out V>>.dump(builder: Appendable) {
+        forEach {
+            it.dump(builder)
+            builder += ","
+        }
     }
 }

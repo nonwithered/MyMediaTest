@@ -30,7 +30,7 @@ open class PlayerParamsFragment<P: PlayerParamsFragment.BaseParams, T : Any> : P
         p as P
     }
 
-    protected val pageData by lazy {
+    private val pageData by lazy {
         requireActivity().viewModel<PageModel>().pageData!!
     }
 
