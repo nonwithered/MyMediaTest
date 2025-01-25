@@ -18,6 +18,7 @@ import com.example.shared.utils.cross
 import com.example.shared.utils.findView
 import com.example.shared.utils.getValue
 import com.example.shared.utils.viewModel
+import kotlin.reflect.KMutableProperty0
 
 open class CaseParamsFragment<T : BundleProperties>(
     protected val caseParams: T,
@@ -39,8 +40,10 @@ open class CaseParamsFragment<T : BundleProperties>(
 
     private val paramList = mutableListOf<Options<out Any>>()
 
-    protected fun <V : Any> option(vararg args: V, block: (V) -> Unit) {
-        paramList += Options(args.toList(), block)
+    protected fun <V : Any> KMutableProperty0<V>.option(vararg args: V) {
+        paramList += Options(args.toList()) {
+            set(it)
+        }
     }
 
     override val layoutId: Int

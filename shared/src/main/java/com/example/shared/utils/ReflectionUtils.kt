@@ -1,5 +1,6 @@
 package com.example.shared.utils
 
+import java.lang.reflect.ParameterizedType
 import kotlin.reflect.KClass
 
 private fun mapKClassPairToJavaClass(vararg args: Pair<KClass<*>, *>): Array<Pair<Class<*>, *>> {
@@ -38,4 +39,10 @@ fun <T : Any, R> Class<T>.invokeStaticMethodSafe(name: String, vararg args: Pair
 
 fun <T : Any, R> KClass<T>.invokeStaticMethodSafe(name: String, vararg args: Pair<KClass<*>, *>): Result<R> {
     return java.invokeStaticMethodSafe(name, *mapKClassPairToJavaClass(*args))
+}
+
+fun Class<*>.getTypeArguments(): Result<List<Class<*>>> {
+    return runCatching {
+        (genericSuperclass as ParameterizedType).actualTypeArguments.map { it as Class<*> }
+    }
 }

@@ -72,10 +72,13 @@ class CasePageActivity : BaseActivity(), LateInitProxy.Owner {
         initSystemUI()
     }
 
+    private val needParams: Boolean
+        get() = pageData.builderClass !== null && pageData.paramsExtras === null
+
     private fun initFragment() {
         ensureFragmentEmpty()
         pageData = CasePageData(intent.extras)
-        val fragmentClass = if (pageData.builderClass !== null && pageData.paramsExtras === null) {
+        val fragmentClass = if (needParams) {
             pageData.builderClass!!
         } else {
             pageData.fragmentClass
@@ -98,14 +101,14 @@ class CasePageActivity : BaseActivity(), LateInitProxy.Owner {
 
     private fun initActionBar() {
         supportActionBar?.title = pageData.pageName
-        if (pageData.hideActionBar.elseFalse) {
+        if (!needParams && pageData.hideActionBar.elseFalse) {
             supportActionBar?.hide()
             TAG.logI { "hideActionBar" }
         }
     }
 
     private fun initSystemUI() {
-        if (pageData.hideSystemUI.elseFalse) {
+        if (!needParams && pageData.hideSystemUI.elseFalse) {
             window.insetsController?.hide(WindowInsets.Type.systemBars())
             TAG.logI { "hideSystemUI" }
         }

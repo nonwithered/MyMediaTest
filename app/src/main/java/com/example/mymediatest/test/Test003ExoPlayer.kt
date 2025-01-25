@@ -11,18 +11,16 @@ import androidx.media3.ui.PlayerView
 import com.example.mymediatest.R
 import com.example.mymediatest.player.BasePlayer
 import com.example.mymediatest.player.ExoPlayerHelper
-import com.example.mymediatest.select.CaseParamsFragment
-import com.example.mymediatest.test.base.PlayerFragment
+import com.example.mymediatest.test.base.PlayerParamsFragment
 import com.example.mymediatest.test.base.PlayerState
 import com.example.shared.utils.TAG
 import com.example.shared.utils.bind
 import com.example.shared.utils.elseZero
-import com.example.shared.utils.getValue
 import com.example.shared.utils.logD
 
-class Test003ExoPlayer : PlayerFragment<View>(), Player.Listener {
+class Test003ExoPlayer : PlayerParamsFragment<Test003ExoPlayer.Params, View>(), Player.Listener {
 
-    internal enum class Type(
+    enum class Type(
         @LayoutRes
         val playerLayoutId: Int,
         val createPlayer: (Context, View) -> Player,
@@ -56,26 +54,18 @@ class Test003ExoPlayer : PlayerFragment<View>(), Player.Listener {
         ),
     }
 
-    internal class Params(
+    class Params(
         bundle: Bundle = Bundle(),
     ) : BaseParams(bundle) {
 
         var type: Type by Type::class.adapt()
     }
 
-    internal class ParamsBuilder : CaseParamsFragment<Params>(Params()) {
+    internal class ParamsBuilder : BaseParamsBuilder<Params>(Params()) {
 
         init {
-            option(
-                *Type.entries.toTypedArray()
-            ) {
-                caseParams.type = it
-            }
+            caseParams::type.adapt()
         }
-    }
-
-    private val params by {
-        Params(pageData.paramsExtras!!)
     }
 
     override val playerLayoutId: Int
