@@ -2,9 +2,12 @@ package com.example.shared.list
 
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
+import com.example.shared.utils.Tuple3
+import com.example.shared.utils.getValue
 import com.example.shared.utils.inflate
+import kotlin.reflect.KClass
 
-abstract class BaseViewAdapter<T, VH: BaseViewHolder<T>> : RecyclerView.Adapter<VH>() {
+abstract class BaseViewAdapter<T : Any, VH: BaseViewHolder<T>> : RecyclerView.Adapter<VH>() {
 
     protected abstract val factory: List<BaseViewFactory<T, VH>>
 
@@ -36,5 +39,20 @@ abstract class BaseViewAdapter<T, VH: BaseViewHolder<T>> : RecyclerView.Adapter<
 
     final override fun getItemCount(): Int {
         return items.size
+    }
+
+    companion object {
+
+        fun <T : Any, VH: BaseViewHolder<T>> simple(
+            vararg tuple: Tuple3<KClass<in T>, KClass<out VH>, Int>,
+            block: () -> List<T>,
+        ): BaseViewAdapter<T, VH> {
+            return object : BaseViewAdapter<T, VH>() {
+
+                override val items by block
+
+                override val factory = tuple.map { BaseViewFactory.simple(it) }
+            }
+        }
     }
 }

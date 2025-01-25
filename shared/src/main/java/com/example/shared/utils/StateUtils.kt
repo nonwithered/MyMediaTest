@@ -7,6 +7,9 @@ import kotlinx.coroutines.flow.StateFlow
 import java.lang.ref.Reference
 import java.lang.ref.WeakReference
 import java.util.concurrent.atomic.AtomicReference
+import java.util.concurrent.locks.Lock
+import java.util.concurrent.locks.ReentrantLock
+import kotlin.concurrent.withLock
 import kotlin.reflect.KProperty
 
 operator fun <T> StateFlow<T>.getValue(owner: Any?, property: KProperty<*>): T {
@@ -118,3 +121,20 @@ val (() -> Unit).asCloseable: AutoCloseable
 
 val AtomicReference<*>.asCloseable: AutoCloseable
     get() = { set(null) }.asCloseable
+
+class CloseableGroup : AutoCloseable {
+
+    private val lock: Lock = ReentrantLock()
+
+    private val list = mutableListOf<AutoCloseable>()
+
+    operator fun plusAssign(closeable: AutoCloseable): Unit = lock.withLock {
+        list += closeable
+    }
+
+    override fun close() : Unit = lock.withLock {
+        while (list.isNotEmpty()) {
+            list.removeLastOrNull()?.close()
+        }
+    }
+}

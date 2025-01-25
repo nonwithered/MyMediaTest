@@ -6,12 +6,20 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.annotation.LayoutRes
 import androidx.fragment.app.Fragment
+import com.example.shared.utils.CloseableGroup
+import com.example.shared.utils.asCloseable
 
 abstract class BaseFragment : Fragment() {
 
     @get:LayoutRes
     protected open val layoutId: Int
         get() = 0
+
+    private val closeableGroup = CloseableGroup()
+
+    protected fun defer(block: () -> Unit) {
+        closeableGroup += block.asCloseable
+    }
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -25,5 +33,10 @@ abstract class BaseFragment : Fragment() {
         view: View,
         savedInstanceState: Bundle?,
     ) {
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        closeableGroup.close()
     }
 }

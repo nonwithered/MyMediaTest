@@ -10,18 +10,12 @@ open class MapProperties<T : Any>(
 
     override fun getPropertyValue(type: KClass<*>, k: String): T? {
         val v = map[k]
-        if (!type.isInstance(v)) {
-            return null
-        }
         return v
     }
 
     override fun setPropertyValue(type: KClass<*>, k: String, v: T?) {
         if (v === null) {
             map -= k
-            return
-        }
-        if (!type.isInstance(v)) {
             return
         }
         map[k] = v

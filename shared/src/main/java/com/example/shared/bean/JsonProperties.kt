@@ -29,18 +29,12 @@ class JsonProperties(
             JSONObject::class -> getJSONObject(k)
             else -> null
         }
-        if (!type.isInstance(v)) {
-            return null
-        }
         return v
     }
 
     override fun setPropertyValue(type: KClass<*>, k: String, v: Any?) {
         if (v === null) {
             json.remove(k)
-            return
-        }
-        if (!type.isInstance(v)) {
             return
         }
         json.put(k, v)

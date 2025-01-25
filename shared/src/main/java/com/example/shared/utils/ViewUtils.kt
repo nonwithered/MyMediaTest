@@ -38,7 +38,7 @@ inline fun <reified T : Any> View.tag(@IdRes key: Int): T {
         firstOrNull(
             { newInstance(this) },
             { newInstance(View::class to this) },
-            { newInstance() },
+            { newInstanceDefault() },
         )!!
     }
 }

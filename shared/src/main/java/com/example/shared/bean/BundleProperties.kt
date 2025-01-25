@@ -32,18 +32,12 @@ open class BundleProperties(
             Parcelable::class -> getParcelable(k)
             else -> null
         }
-        if (!type.isInstance(v)) {
-            return null
-        }
         return v
     }
 
     override fun setPropertyValue(type: KClass<*>, k: String, v: Any?) {
         if (v === null) {
             bundle.remove(k)
-            return
-        }
-        if (!type.isInstance(v)) {
             return
         }
         when (type) {

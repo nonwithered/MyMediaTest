@@ -6,11 +6,17 @@ import com.example.mymediatest.player.BasePlayer
 import com.example.mymediatest.player.MediaPlayerHelper
 import com.example.mymediatest.test.base.PlayerFragment
 import com.example.mymediatest.test.base.PlayerState
+import com.example.shared.bean.BundleProperties
 import com.example.shared.utils.TAG
 import com.example.shared.utils.bind
 import com.example.shared.utils.logD
 
 abstract class Test000MediaPlayer : PlayerFragment<BasePlayer.Holder>() {
+
+    class Params() : BundleProperties() {
+
+        val layoutId: Int? by "layout_id".property()
+    }
 
     private val player by lazy {
         MediaPlayerHelper(requireContext())

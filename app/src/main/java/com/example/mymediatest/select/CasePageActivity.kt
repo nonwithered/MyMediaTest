@@ -1,10 +1,12 @@
-package com.example.mymediatest.case
+package com.example.mymediatest.select
 
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.view.WindowInsets
+import androidx.fragment.app.Fragment
 import com.example.mymediatest.R
+import com.example.shared.bean.BundleProperties
 import com.example.shared.page.BaseActivity
 import com.example.shared.utils.TAG
 import com.example.shared.utils.elseFalse
@@ -12,14 +14,32 @@ import com.example.shared.utils.logI
 
 class CasePageActivity : BaseActivity() {
 
-    companion object {
+    class CasePageData(
+        bundle: Bundle? = null,
+    ): BundleProperties(bundle ?: Bundle()) {
 
-        private const val TAG_PAGE_FRAGMENT = "TAG_SELECT_PAGE_FRAGMENT"
+        private var fragmentClassName: String? by "fragmentClassName".property()
 
-        fun start(context: Context, pageData: CasePageData) {
-            val intent = Intent(context, CasePageActivity::class.java).putExtras(pageData.asBundle())
-            context.startActivity(intent)
-        }
+        var fragmentClass: Class<out Fragment>?
+            get() {
+                val fragmentClassName = fragmentClassName ?: return null
+                val clazz = runCatching {
+                    Class.forName(fragmentClassName)
+                }.getOrNull()
+                @Suppress("UNCHECKED_CAST")
+                return clazz as? Class<out Fragment>
+            }
+            set(value) {
+                fragmentClassName = value?.name
+            }
+
+        var pageName: String? by "pageName".property()
+
+        var hideActionBar: Boolean? by "hideActionBar".property()
+
+        var hideSystemUI: Boolean? by "hideSystemUI".property()
+
+        var extras: Bundle? by "extras".property()
     }
 
     private val pageData by lazy {
@@ -69,6 +89,16 @@ class CasePageActivity : BaseActivity() {
         if (pageData.hideSystemUI.elseFalse) {
             window.insetsController?.hide(WindowInsets.Type.systemBars())
             TAG.logI { "hideSystemUI" }
+        }
+    }
+
+    companion object {
+
+        private const val TAG_PAGE_FRAGMENT = "TAG_SELECT_PAGE_FRAGMENT"
+
+        fun start(context: Context, pageData: CasePageData) {
+            val intent = Intent(context, CasePageActivity::class.java).putExtras(pageData.asBundle())
+            context.startActivity(intent)
         }
     }
 }

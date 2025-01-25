@@ -23,6 +23,9 @@ abstract class Test000ExoPlayer<V : Any> : PlayerFragment<V>(), Player.Listener 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         player = createPlayer(requireContext())
+        defer {
+            player.release()
+        }
         bind(playerVM.state) {
             onStateChange(it)
         }
@@ -48,11 +51,6 @@ abstract class Test000ExoPlayer<V : Any> : PlayerFragment<V>(), Player.Listener 
             }
         }
         player.addListener(this)
-    }
-
-    override fun onDestroyView() {
-        super.onDestroyView()
-        player.release()
     }
 
     override fun onPlaybackStateChanged(playbackState: Int) {
