@@ -6,6 +6,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.ViewStub
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.annotation.CallSuper
 import androidx.annotation.LayoutRes
 import com.example.mymediatest.R
 import com.example.shared.page.BaseFragment
@@ -86,6 +87,7 @@ abstract class PlayerFragment<T : Any> : BaseFragment() {
         return v
     }
 
+    @CallSuper
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         bind(playerVM.state) {

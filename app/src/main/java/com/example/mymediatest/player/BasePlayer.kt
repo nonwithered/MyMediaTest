@@ -2,6 +2,7 @@ package com.example.mymediatest.player
 
 import android.content.Context
 import android.view.View
+import androidx.annotation.CallSuper
 import com.example.shared.utils.ViewSupport
 
 abstract class BasePlayer private constructor(
@@ -16,6 +17,7 @@ abstract class BasePlayer private constructor(
         ViewSupport.Adapter(),
     )
 
+    @CallSuper
     open fun onInit(view: View) {
         viewAdapter.view = view
     }
