@@ -15,8 +15,8 @@ pwd
 --arch=arm64 \
 --target-os=linux \
 --sysroot="$PLATFORM" \
---enable-static \
---disable-shared \
+--disable-static \
+--enable-shared \
 --disable-ffmpeg \
 --disable-ffplay \
 --disable-ffprobe \
@@ -66,5 +66,5 @@ pwd
 --enable-protocol=file \
 --disable-libfdk_aac \
 --disable-libx264 \
---extra-cflags="" \
+--extra-cflags="-fPIC" \
 --extra-ldflags="" \

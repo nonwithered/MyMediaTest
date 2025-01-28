@@ -32,18 +32,102 @@ add_library(${CMAKE_PROJECT_NAME} SHARED
 # can link libraries from various origins, such as libraries defined in this
 # build script, prebuilt third-party libraries, or Android system libraries.
 
-include_directories(${CMAKE_SOURCE_DIR}/../shared/include)
-include_directories(${CMAKE_SOURCE_DIR}/build/config/include)
+message("ANDROID_ABI ${ANDROID_ABI}")
+
+set(IMPORT_DIR ${CMAKE_SOURCE_DIR}/../submodule/ffmpegAndroid)
+
+target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
+        ${CMAKE_SOURCE_DIR}/../shared/include
+        ${IMPORT_DIR}/${ANDROID_ABI}/include
+)
+
+# Codec library
+add_library(
+        avcodec
+        SHARED
+        IMPORTED
+)
+set_target_properties(
+        avcodec
+        PROPERTIES IMPORTED_LOCATION
+        ${IMPORT_DIR}/${ANDROID_ABI}/libavcodec.so
+)
+# The filter library is temporarily out of use
+add_library(
+        avfilter
+        SHARED
+        IMPORTED
+)
+set_target_properties(
+        avfilter
+        PROPERTIES IMPORTED_LOCATION
+        ${IMPORT_DIR}/${ANDROID_ABI}/libavfilter.so
+)
+# File format libraries are required for most operations
+add_library(
+        avformat
+        SHARED
+        IMPORTED
+)
+set_target_properties(
+        avformat
+        PROPERTIES IMPORTED_LOCATION
+        ${IMPORT_DIR}/${ANDROID_ABI}/libavformat.so
+)
+# Tool library
+add_library(
+        avutil
+        SHARED
+        IMPORTED
+)
+set_target_properties(
+        avutil
+        PROPERTIES IMPORTED_LOCATION
+        ${IMPORT_DIR}/${ANDROID_ABI}/libavutil.so
+)
+# The resampling library is mainly used for audio conversion.
+add_library(
+        swresample
+        SHARED
+        IMPORTED
+)
+set_target_properties(
+        swresample
+        PROPERTIES IMPORTED_LOCATION
+        ${IMPORT_DIR}/${ANDROID_ABI}/libswresample.so
+)
+# Video format conversion library is mainly used for video conversion.
+add_library(
+        swscale
+        SHARED
+        IMPORTED
+)
+set_target_properties(
+        swscale
+        PROPERTIES IMPORTED_LOCATION
+        ${IMPORT_DIR}/${ANDROID_ABI}/libswscale.so
+)
+# avdevice
+add_library(
+        avdevice
+        SHARED
+        IMPORTED
+)
+set_target_properties(
+        avdevice
+        PROPERTIES IMPORTED_LOCATION
+        ${IMPORT_DIR}/${ANDROID_ABI}/libavdevice.so
+)
 
 target_link_libraries(${CMAKE_PROJECT_NAME}
         # List libraries link to the target library
         android
         log
-        ${CMAKE_SOURCE_DIR}/build/config/lib/libavcodec.a
-        ${CMAKE_SOURCE_DIR}/build/config/lib/libavdevice.a
-        ${CMAKE_SOURCE_DIR}/build/config/lib/libavfilter.a
-        ${CMAKE_SOURCE_DIR}/build/config/lib/libavformat.a
-        ${CMAKE_SOURCE_DIR}/build/config/lib/libavutil.a
-        ${CMAKE_SOURCE_DIR}/build/config/lib/libswresample.a
-        ${CMAKE_SOURCE_DIR}/build/config/lib/libswscale.a
+        avcodec
+        avfilter
+        avformat
+        avutil
+        swresample
+        swscale
+        avdevice
 )
