@@ -1,8 +1,8 @@
 #!/bin/bash
 
 ANDROID_NDK_ROOT=$ANDROID_NDK_HOME
-PREBUILT=$ANDROID_NDK_ROOT/toolchains/arm-linux-androideabi-4.9/prebuilt/linux-x86_64
-PLATFORM=$ANDROID_NDK_ROOT/platforms/android-26/arch-arm
+PREBUILT=$ANDROID_NDK_ROOT/toolchains/aarch64-linux-android-4.9/prebuilt/linux-x86_64
+PLATFORM=$ANDROID_NDK_ROOT/platforms/android-26/arch-arm64
 
 mkdir ffmpeg/config
 cd ffmpeg/config || exit
@@ -10,7 +10,7 @@ pwd
 
 ../../submodule/FFmpeg/configure \
 --prefix="$(pwd)"/../build/config \
---cross-prefix="$PREBUILT"/bin/arm-linux-androideabi- \
+--cross-prefix="$PREBUILT"/bin/aarch64-linux-android- \
 --enable-cross-compile \
 --arch=arm64 \
 --target-os=linux \
@@ -66,5 +66,5 @@ pwd
 --enable-protocol=file \
 --disable-libfdk_aac \
 --disable-libx264 \
---extra-cflags="-marm -march=armv7-a" \
---extra-ldflags="-marm -march=armv7-a" \
+--extra-cflags="" \
+--extra-ldflags="" \

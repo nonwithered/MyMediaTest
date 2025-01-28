@@ -26,14 +26,24 @@ project("ffmpeg")
 # used in the AndroidManifest.xml file.
 add_library(${CMAKE_PROJECT_NAME} SHARED
         # List C/C++ source files with relative paths to this CMakeLists.txt.
-        main.cc)
+        src/main/cpp/main.cc)
 
 # Specifies libraries CMake should link to your target library. You
 # can link libraries from various origins, such as libraries defined in this
 # build script, prebuilt third-party libraries, or Android system libraries.
+
+include_directories(${CMAKE_SOURCE_DIR}/../shared/include)
+include_directories(${CMAKE_SOURCE_DIR}/build/config/include)
+
 target_link_libraries(${CMAKE_PROJECT_NAME}
         # List libraries link to the target library
         android
-        log)
-
-include_directories(${CMAKE_SOURCE_DIR}/../../../../shared/include)
+        log
+        ${CMAKE_SOURCE_DIR}/build/config/lib/libavcodec.a
+        ${CMAKE_SOURCE_DIR}/build/config/lib/libavdevice.a
+        ${CMAKE_SOURCE_DIR}/build/config/lib/libavfilter.a
+        ${CMAKE_SOURCE_DIR}/build/config/lib/libavformat.a
+        ${CMAKE_SOURCE_DIR}/build/config/lib/libavutil.a
+        ${CMAKE_SOURCE_DIR}/build/config/lib/libswresample.a
+        ${CMAKE_SOURCE_DIR}/build/config/lib/libswscale.a
+)
