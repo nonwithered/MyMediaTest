@@ -9,7 +9,7 @@ import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.PlayerView
 import com.example.mymediatest.R
-import com.example.mymediatest.player.BasePlayer
+import com.example.mymediatest.player.BasePlayerHelper
 import com.example.mymediatest.player.wrapper.ExoPlayerHelper
 import com.example.mymediatest.test.base.PlayerParamsFragment
 import com.example.mymediatest.test.base.PlayerState
@@ -48,7 +48,7 @@ class Test003ExoPlayer : PlayerParamsFragment<Test003ExoPlayer.Params, View>(), 
         ) {
 
             override fun createPlayer(context: Context, view: View): Player {
-                view as BasePlayer.Holder
+                view as BasePlayerHelper.Holder
                 return ExoPlayerHelper(context).also {
                     view.player = it
                 }
@@ -60,7 +60,7 @@ class Test003ExoPlayer : PlayerParamsFragment<Test003ExoPlayer.Params, View>(), 
         ) {
 
             override fun createPlayer(context: Context, view: View): Player {
-                view as BasePlayer.Holder
+                view as BasePlayerHelper.Holder
                 return ExoPlayerHelper(context).also {
                     view.player = it
                 }

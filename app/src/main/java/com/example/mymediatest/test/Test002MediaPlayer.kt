@@ -4,7 +4,8 @@ import android.os.Bundle
 import android.view.View
 import androidx.annotation.LayoutRes
 import com.example.mymediatest.R
-import com.example.mymediatest.player.BasePlayer
+import com.example.mymediatest.player.BasePlayerHelper
+import com.example.mymediatest.player.wrapper.CommonPlayerHelper
 import com.example.mymediatest.player.wrapper.MediaPlayerHelper
 import com.example.mymediatest.test.base.PlayerParamsFragment
 import com.example.mymediatest.test.base.PlayerState
@@ -12,7 +13,7 @@ import com.example.shared.utils.TAG
 import com.example.shared.utils.bind
 import com.example.shared.utils.logD
 
-class Test002MediaPlayer : PlayerParamsFragment<Test002MediaPlayer.Params, BasePlayer.Holder>() {
+class Test002MediaPlayer : PlayerParamsFragment<Test002MediaPlayer.Params, BasePlayerHelper.Holder>() {
 
     enum class Type(
         @LayoutRes
@@ -45,7 +46,7 @@ class Test002MediaPlayer : PlayerParamsFragment<Test002MediaPlayer.Params, BaseP
     override val playerLayoutId: Int
         get() = params.type.playerLayoutId
     
-    private val player by lazy {
+    private val player: CommonPlayerHelper by lazy {
         MediaPlayerHelper(requireContext())
     }
 
@@ -77,12 +78,12 @@ class Test002MediaPlayer : PlayerParamsFragment<Test002MediaPlayer.Params, BaseP
         bind(player.currentState) {
             TAG.logD { "currentState get $it" }
             when (it) {
-                MediaPlayerHelper.State.PREPARED -> {
+                CommonPlayerHelper.State.PREPARED -> {
                     playerVM.state.value = PlayerState.PAUSED
                     playerVM.currentPosition.value = 0
-                    playerVM.duration.value = player.duration.coerceAtLeast(0).toLong()
+                    playerVM.duration.value = player.duration.coerceAtLeast(0)
                 }
-                MediaPlayerHelper.State.PLAYBACK_COMPLETED -> {
+                CommonPlayerHelper.State.PLAYBACK_COMPLETED -> {
                     playerVM.state.value = PlayerState.PAUSED
                     playerVM.currentPosition.value = 0
                 }
@@ -101,5 +102,5 @@ class Test002MediaPlayer : PlayerParamsFragment<Test002MediaPlayer.Params, BaseP
     }
 
     override val currentPosition: Long
-        get() = player.currentPosition.toLong()
+        get() = player.currentPosition
 }

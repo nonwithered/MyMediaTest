@@ -5,7 +5,7 @@ import android.view.View
 import androidx.annotation.CallSuper
 import com.example.shared.utils.ViewSupport
 
-abstract class BasePlayer private constructor(
+abstract class BasePlayerHelper private constructor(
     protected val context: Context,
     protected val viewAdapter: ViewSupport.Adapter<View>,
 ) : ViewSupport by viewAdapter {
@@ -32,6 +32,6 @@ abstract class BasePlayer private constructor(
 
     interface Holder : ViewSupport {
 
-        var player: BasePlayer
+        var player: BasePlayerHelper
     }
 }

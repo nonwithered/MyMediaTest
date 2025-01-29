@@ -7,7 +7,7 @@ import android.view.View
 import androidx.media3.common.Player
 import androidx.media3.common.VideoSize
 import androidx.media3.exoplayer.ExoPlayer
-import com.example.mymediatest.player.BasePlayer
+import com.example.mymediatest.player.BasePlayerHelper
 import com.example.mymediatest.player.utils.VideoViewHelper
 
 /**
@@ -16,7 +16,7 @@ import com.example.mymediatest.player.utils.VideoViewHelper
 class ExoPlayerHelper private constructor(
     context: Context,
     private val player: Player,
-) : BasePlayer(context),
+) : BasePlayerHelper(context),
     Player by player {
 
     constructor(

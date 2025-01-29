@@ -13,10 +13,10 @@ class PlayerTextureView(
     context,
     attributeSet,
 ),
-    BasePlayer.Holder,
+    BasePlayerHelper.Holder,
     LateInitProxy.Owner {
 
-    override var player: BasePlayer by LateInitProxy()
+    override var player: BasePlayerHelper by LateInitProxy()
 
     override fun onPropertyInit(proxy: LateInitProxy<*>) {
         when {
