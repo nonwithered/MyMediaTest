@@ -17,6 +17,7 @@ import com.example.shared.utils.elseEmpty
 import com.example.shared.utils.elseFalse
 import com.example.shared.utils.elseZero
 import com.example.shared.utils.logD
+import java.nio.ByteBuffer
 import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.TimeUnit
 
@@ -58,7 +59,12 @@ class MediaCodecPlayerHelper(
         var nextTime = 0L
 
         init {
-            codec.configure(format.asMediaFormat(), null, null, 0)
+            val fmt = format.asMediaFormat()
+            if (format.mime == "audio/mp4a-latm") { // set it but still fail
+                TAG.logD { "audio/mp4a-latm setByteBuffer csd-0 [0x12, 0x12]" }
+                fmt.setByteBuffer("csd-0", ByteBuffer.wrap(byteArrayOf(0x12, 0x12)))
+            }
+            codec.configure(fmt, null, null, 0)
             codec.start()
         }
 
@@ -256,7 +262,6 @@ class MediaCodecPlayerHelper(
             override fun run() {
                 while (!shouldExit) {
                     val pos = TimeUnit.MICROSECONDS.toMillis(currentPosition)
-                    TAG.logD { "render $isFinished $pos $duration" }
                     if (pos >= duration) {
                         if (!isFinished) {
                             isFinished = true
