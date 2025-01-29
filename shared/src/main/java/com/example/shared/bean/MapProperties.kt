@@ -9,8 +9,7 @@ open class MapProperties<T : Any>(
     fun asMap(): Map<String, T?> = map
 
     override fun getPropertyValue(type: KClass<*>, k: String): T? {
-        val v = map[k]
-        return v
+        return map[k]
     }
 
     override fun setPropertyValue(type: KClass<*>, k: String, v: T?) {

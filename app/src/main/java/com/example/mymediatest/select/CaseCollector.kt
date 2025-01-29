@@ -11,7 +11,6 @@ object CaseCollector {
         Test001VideoView::class.asCaseItem,
         Test002MediaPlayer::class asCaseItem Test002MediaPlayer.ParamsBuilder::class,
         Test003ExoPlayer::class asCaseItem Test003ExoPlayer.ParamsBuilder::class,
-        Test004CodecPlayer::class asCaseItem Test004CodecPlayer.ParamsBuilder::class,
     )
 
     private val KClass<out Fragment>.asCaseItem: CaseItem

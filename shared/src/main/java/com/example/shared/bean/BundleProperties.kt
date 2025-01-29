@@ -11,12 +11,11 @@ open class BundleProperties(
 
     fun asBundle(): Bundle = bundle
 
-    @Suppress("IMPLICIT_CAST_TO_ANY")
     override fun getPropertyValue(type: KClass<*>, k: String): Any? = bundle.run {
         if (!containsKey(k)) {
             return null
         }
-        val v = when (type) {
+        when (type) {
             Boolean::class -> getBoolean(k)
             Int::class -> getInt(k)
             Long::class -> getLong(k)
@@ -31,7 +30,6 @@ open class BundleProperties(
             Parcelable::class -> getParcelable(k)
             else -> null
         }
-        return v
     }
 
     override fun setPropertyValue(type: KClass<*>, k: String, v: Any?): Unit = bundle.run {

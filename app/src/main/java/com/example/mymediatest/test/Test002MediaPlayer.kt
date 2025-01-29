@@ -1,21 +1,25 @@
 package com.example.mymediatest.test
 
+import android.content.Context
 import android.os.Bundle
 import android.view.View
 import androidx.annotation.LayoutRes
 import com.example.mymediatest.R
 import com.example.mymediatest.player.BasePlayerHelper
 import com.example.mymediatest.player.wrapper.CommonPlayerHelper
+import com.example.mymediatest.player.wrapper.MediaCodecPlayerHelper
 import com.example.mymediatest.player.wrapper.MediaPlayerHelper
 import com.example.mymediatest.test.base.PlayerParamsFragment
 import com.example.mymediatest.test.base.PlayerState
 import com.example.shared.utils.TAG
 import com.example.shared.utils.bind
 import com.example.shared.utils.logD
+import com.example.shared.utils.newInstanceSafe
+import kotlin.reflect.KClass
 
 class Test002MediaPlayer : PlayerParamsFragment<Test002MediaPlayer.Params, BasePlayerHelper.Holder>() {
 
-    enum class Type(
+    enum class ViewType(
         @LayoutRes
         val playerLayoutId: Int,
     ) {
@@ -28,26 +32,43 @@ class Test002MediaPlayer : PlayerParamsFragment<Test002MediaPlayer.Params, BaseP
             R.layout.common_player_texture_view,
         ),
     }
+
+    enum class PlayerType(
+
+        val clazz: KClass<out CommonPlayerHelper>,
+    ) {
+
+        MEDIA_CODEC(
+            MediaCodecPlayerHelper::class,
+        ),
+
+        MEDIA_PLAYER(
+            MediaPlayerHelper::class,
+        ),
+    }
     
     class Params(
         bundle: Bundle = Bundle(),
     ) : BaseParams(bundle) {
 
-        var type: Type by Type::class.adapt()
+        var viewType: ViewType by ViewType::class.adapt()
+
+        var playerType: PlayerType by PlayerType::class.adapt()
     }
 
     internal class ParamsBuilder : BaseParamsBuilder<Params>(Params()) {
 
         init {
-            caseParams::type.adapt()
+            caseParams::viewType.adapt()
+            caseParams::playerType.adapt()
         }
     }
     
     override val playerLayoutId: Int
-        get() = params.type.playerLayoutId
+        get() = params.viewType.playerLayoutId
     
     private val player: CommonPlayerHelper by lazy {
-        MediaPlayerHelper(requireContext())
+        params.playerType.clazz.newInstanceSafe(Context::class to requireContext()).getOrThrow()
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {

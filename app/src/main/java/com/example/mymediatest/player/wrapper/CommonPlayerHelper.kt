@@ -155,6 +155,7 @@ abstract class CommonPlayerHelper(
         }
 
     protected fun onPrepared(videoSize: Vec2<Int>) {
+        TAG.logD { "onPrepared $videoSize" }
         _currentState.value = State.PREPARED
         this.videoSize = videoSize
         seekWhenPrepared.takeIf { pos -> pos != 0 }?.let { pos -> seekTo(pos) }
@@ -170,10 +171,12 @@ abstract class CommonPlayerHelper(
     }
 
     protected fun onVideoSizeChanged(videoSize: Vec2<Int>) {
+        TAG.logD { "onVideoSizeChanged $videoSize" }
         this.videoSize = videoSize
     }
 
     protected fun onCompletion() {
+        TAG.logD { "onCompletion" }
         _currentState.value = State.PLAYBACK_COMPLETED
         targetState = State.PLAYBACK_COMPLETED
         if (audioFocusType != AudioManager.AUDIOFOCUS_NONE) {
@@ -182,6 +185,7 @@ abstract class CommonPlayerHelper(
     }
 
     protected fun onError() {
+        TAG.logD { "onError" }
         _currentState.value = State.ERROR
         targetState = State.ERROR
     }

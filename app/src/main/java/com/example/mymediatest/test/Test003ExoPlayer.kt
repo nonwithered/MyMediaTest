@@ -25,7 +25,7 @@ class Test003ExoPlayer : PlayerParamsFragment<Test003ExoPlayer.Params, View>(), 
         fun createPlayer(context: Context, view: View): Player
     }
 
-    enum class Type(
+    enum class ViewType(
         @LayoutRes
         val playerLayoutId: Int,
     ) : PlayerFactory {
@@ -72,18 +72,18 @@ class Test003ExoPlayer : PlayerParamsFragment<Test003ExoPlayer.Params, View>(), 
         bundle: Bundle = Bundle(),
     ) : BaseParams(bundle) {
 
-        var type: Type by Type::class.adapt()
+        var viewType: ViewType by ViewType::class.adapt()
     }
 
     internal class ParamsBuilder : BaseParamsBuilder<Params>(Params()) {
 
         init {
-            caseParams::type.adapt()
+            caseParams::viewType.adapt()
         }
     }
 
     override val playerLayoutId: Int
-        get() = params.type.playerLayoutId
+        get() = params.viewType.playerLayoutId
 
     private lateinit var player: Player
 
@@ -91,7 +91,7 @@ class Test003ExoPlayer : PlayerParamsFragment<Test003ExoPlayer.Params, View>(), 
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        player = params.type.createPlayer(requireContext(), playerView)
+        player = params.viewType.createPlayer(requireContext(), playerView)
         defer {
             player.release()
         }
