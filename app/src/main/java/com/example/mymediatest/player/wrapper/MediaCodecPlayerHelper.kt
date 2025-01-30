@@ -135,13 +135,13 @@ class MediaCodecPlayerHelper(
             val inputBuffer = codec.getInputBuffer(inputIndex)!!
             extractor.useTrack(index) {
                 extractor.seekTo(trackDecoder.nextTime, MediaExtractor.SEEK_TO_NEXT_SYNC)
-                TAG.logD { "decodeTrack $index sampleTime ${extractor.sampleTime}" }
+                TAG.logD { "decodeTrack $index sampleTime ${extractor.sampleTime} ${extractor.sampleFlags}" }
                 val sampleSize = extractor.readSampleData(inputBuffer, index)
                 if (sampleSize < 0) {
                     codec.queueInputBuffer(inputIndex, 0, 0, 0, MediaCodec.BUFFER_FLAG_END_OF_STREAM)
                     return false
                 } else {
-                    codec.queueInputBuffer(inputIndex, 0, sampleSize, extractor.sampleTime, 0)
+                    codec.queueInputBuffer(inputIndex, 0, sampleSize, extractor.sampleTime, extractor.sampleFlags)
                 }
             }
             val bufferInfo = MediaCodec.BufferInfo()
@@ -168,7 +168,7 @@ class MediaCodecPlayerHelper(
                 )
             )
             trackDecoder.nextTime = nextTime
-            TAG.logD { "decodeTrack $index bufferInfo ${bufferInfo.size}" }
+            TAG.logD { "decodeTrack $index bufferInfo ${bufferInfo.size} ${bufferInfo.presentationTimeUs} ${bufferInfo.flags}" }
             return true
         }
     }
