@@ -17,7 +17,7 @@ import com.example.shared.utils.elseEmpty
 import com.example.shared.utils.elseFalse
 import com.example.shared.utils.elseZero
 import com.example.shared.utils.logD
-import java.nio.ByteBuffer
+import com.example.shared.utils.logE
 import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.TimeUnit
 
@@ -60,10 +60,6 @@ class MediaCodecPlayerHelper(
 
         init {
             val fmt = format.asMediaFormat()
-            if (format.mime == "audio/mp4a-latm") { // set it but still fail
-                TAG.logD { "audio/mp4a-latm setByteBuffer csd-0 [0x12, 0x12]" }
-                fmt.setByteBuffer("csd-0", ByteBuffer.wrap(byteArrayOf(0x12, 0x12)))
-            }
             codec.configure(fmt, null, null, 0)
             codec.start()
         }
@@ -98,6 +94,7 @@ class MediaCodecPlayerHelper(
 
         override fun run() = try {
             performPrepared()
+            TAG.logD { "runLoop begin ${decoder.track.size}" }
             while (!shouldExit) {
                 val nonStop = runOnce()
                 if (!nonStop) {
@@ -105,6 +102,9 @@ class MediaCodecPlayerHelper(
                     break
                 }
             }
+            TAG.logD { "runLoop shouldExit" }
+        } catch (e: Throwable) {
+            TAG.logE(e) { "runLoop catch" }
         } finally {
             TAG.logD { "runLoop end" }
             decoder.close()
@@ -136,7 +136,7 @@ class MediaCodecPlayerHelper(
             extractor.useTrack(index) {
                 extractor.seekTo(trackDecoder.nextTime, MediaExtractor.SEEK_TO_NEXT_SYNC)
                 TAG.logD { "decodeTrack $index sampleTime ${extractor.sampleTime} ${extractor.sampleFlags}" }
-                val sampleSize = extractor.readSampleData(inputBuffer, index)
+                val sampleSize = extractor.readSampleData(inputBuffer, 0)
                 if (sampleSize < 0) {
                     codec.queueInputBuffer(inputIndex, 0, 0, 0, MediaCodec.BUFFER_FLAG_END_OF_STREAM)
                     return false
