@@ -19,12 +19,12 @@ import com.example.shared.utils.elseFalse
 import com.example.shared.utils.elseZero
 import com.example.shared.utils.logD
 import com.example.shared.utils.logE
+import com.example.shared.utils.mainScope
+import kotlinx.coroutines.launch
 import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.TimeUnit
 
-class MediaCodecPlayerHelper(
-    context: Context,
-) : CommonPlayerHelper(context) {
+object MediaCodecPlayerHelperFactory : CommonPlayerHelper.Factory {
 
     private class TrackFormat(
         val index: Int,
@@ -84,8 +84,9 @@ class MediaCodecPlayerHelper(
         }
     }
 
-    private inner class DecodeWorker(
+    private class DecodeWorker(
         val decoder: MediaDecoder,
+        val listener: CommonPlayerHelper.Listener,
     ) : Runnable {
 
         private val timeoutUs = TimeUnit.SECONDS.toMicros(1)
@@ -94,7 +95,9 @@ class MediaCodecPlayerHelper(
         var shouldExit = false
 
         override fun run() = try {
-            performPrepared()
+            mainScope.launch {
+                listener.onPrepared(0 to 0)
+            }
             TAG.logD { "runLoop begin ${decoder.track.size}" }
             while (!shouldExit) {
                 val nonStop = runOnce()
@@ -179,9 +182,9 @@ class MediaCodecPlayerHelper(
         val bytes: ByteArray,
     )
 
-    private inner class PlayerImpl(
+    private class PlayerImpl(
         private val decodeWorker: DecodeWorker,
-    ) : CommonPlayer {
+    ) : CommonPlayerHelper.Controller {
 
         private val audioTrack: AudioTrack
 
@@ -266,7 +269,9 @@ class MediaCodecPlayerHelper(
                     if (pos >= duration) {
                         if (!isFinished) {
                             isFinished = true
-                            performCompletion()
+                            mainScope.launch {
+                                decodeWorker.listener.onCompletion()
+                            }
                         }
                         continue
                     }
@@ -300,10 +305,12 @@ class MediaCodecPlayerHelper(
     }
 
     override fun openVideo(
+        context: Context,
         uri: Uri,
         surface: Surface,
         audioAttributes: AudioAttributes,
-    ): CommonPlayer {
+        listener: CommonPlayerHelper.Listener,
+    ): CommonPlayerHelper.Controller {
         val extractor = MediaExtractor()
         extractor.setDataSource(context, uri, null)
         val track = (0 until extractor.trackCount).map {
@@ -324,20 +331,8 @@ class MediaCodecPlayerHelper(
             track = track,
         )
         val player = PlayerImpl(
-            decodeWorker = DecodeWorker(decoder),
+            decodeWorker = DecodeWorker(decoder, listener),
         )
         return player
-    }
-
-    private fun performPrepared() {
-        viewAdapter.view?.post {
-            super.onPrepared(0 to 0)
-        }
-    }
-
-    private fun performCompletion() {
-        viewAdapter.view?.post {
-            super.onCompletion()
-        }
     }
 }

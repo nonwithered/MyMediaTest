@@ -2,6 +2,7 @@ package com.example.shared.utils
 
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import java.util.concurrent.locks.Lock
@@ -11,6 +12,10 @@ import kotlin.coroutines.CoroutineContext
 import kotlin.coroutines.EmptyCoroutineContext
 import kotlin.coroutines.suspendCoroutine
 import kotlin.reflect.KClass
+
+val mainScope by lazy {
+    MainScope()
+}
 
 fun Job.dispose() {
     cancel()
@@ -53,6 +58,11 @@ fun <R> runCatchingTyped(types: Map<KClass<out Throwable>, (Throwable) -> R?>, b
 
 fun <R> runCatchingTyped(vararg types: Pair<KClass<out Throwable>, (Throwable) -> R?>, block: () -> R): Result<R?> {
     return runCatchingTyped(types.toMap(), block)
+}
+
+@JvmName("runCatchingTypedDefault")
+fun <R> runCatchingTyped(vararg types: Pair<KClass<out Throwable>, (Throwable) -> Unit>, block: () -> R): Result<R?> {
+    return runCatchingTyped(types.toMap().mapValues { { e -> it.value(e); null } }, block)
 }
 
 fun <T : Any> T.autoRefScope(coroutineContext: CoroutineContext = EmptyCoroutineContext): CoroutineScope {

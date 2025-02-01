@@ -10,7 +10,14 @@ import com.example.shared.utils.logD
 
 abstract class CommonPlayerFragment<P : PlayerParamsFragment.BaseParams, V: BasePlayerHelper.Holder> : PlayerParamsFragment<P, V>() {
 
-    protected abstract val player: CommonPlayerHelper
+    protected abstract val factory: CommonPlayerHelper.Factory
+
+    private val player: CommonPlayerHelper by lazy {
+        CommonPlayerHelper(
+            context = requireContext(),
+            factory = factory,
+        )
+    }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)

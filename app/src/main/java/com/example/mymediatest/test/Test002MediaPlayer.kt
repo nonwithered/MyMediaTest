@@ -3,7 +3,7 @@ package com.example.mymediatest.test
 import android.os.Bundle
 import androidx.annotation.LayoutRes
 import com.example.mymediatest.R
-import com.example.mymediatest.play.MediaPlayerHelper
+import com.example.mymediatest.play.MediaPlayerHelperFactory
 import com.example.mymediatest.play.base.BasePlayerHelper
 import com.example.mymediatest.play.base.CommonPlayerHelper
 import com.example.mymediatest.test.base.CommonPlayerFragment
@@ -41,7 +41,6 @@ class Test002MediaPlayer : CommonPlayerFragment<Test002MediaPlayer.Params, BaseP
     override val playerLayoutId: Int
         get() = params.viewType.playerLayoutId
     
-    override val player: CommonPlayerHelper by lazy {
-        MediaPlayerHelper(requireContext())
-    }
+    override val factory: CommonPlayerHelper.Factory
+        get() = MediaPlayerHelperFactory
 }

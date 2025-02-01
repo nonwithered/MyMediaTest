@@ -23,13 +23,36 @@ import kotlinx.coroutines.flow.MutableStateFlow
 /**
  * @see android.widget.VideoView
  */
-abstract class CommonPlayerHelper(
+class CommonPlayerHelper(
     context: Context,
+    private val factory: Factory,
 ) : BasePlayerHelper(context),
     SurfaceHolder.Callback2,
     TextureView.SurfaceTextureListener {
 
-    protected interface CommonPlayer : AutoCloseable {
+    fun interface Factory {
+
+        fun openVideo(
+            context: Context,
+            uri: Uri,
+            surface: Surface,
+            audioAttributes: AudioAttributes,
+            listener: Listener,
+        ): Controller?
+    }
+
+    interface Listener {
+
+        fun onPrepared(videoSize: Vec2<Int>)
+
+        fun onVideoSizeChanged(videoSize: Vec2<Int>)
+
+        fun onCompletion()
+
+        fun onError(e: Throwable)
+    }
+
+    interface Controller : AutoCloseable {
 
         val isPlaying: Boolean
 
@@ -106,7 +129,7 @@ abstract class CommonPlayerHelper(
 
     private var seekWhenPrepared = 0
 
-    private var commonPlayer: CommonPlayer? = null
+    private var commonPlayer: Controller? = null
 
     private var audioFocusType = AudioManager.AUDIOFOCUS_GAIN
     private val audioManager = context.systemService<AudioManager>()
@@ -118,6 +141,26 @@ abstract class CommonPlayerHelper(
         get() = AudioFocusRequest.Builder(audioFocusType)
             .setAudioAttributes(audioAttributes)
             .build()
+
+    private val listener = object : Listener {
+
+        override fun onPrepared(videoSize: Vec2<Int>) {
+            this@CommonPlayerHelper.onPrepared(videoSize)
+        }
+
+        override fun onVideoSizeChanged(videoSize: Vec2<Int>) {
+            this@CommonPlayerHelper.onVideoSizeChanged(videoSize)
+        }
+
+        override fun onCompletion() {
+            this@CommonPlayerHelper.onCompletion()
+        }
+
+        override fun onError(e: Throwable) {
+            this@CommonPlayerHelper.onError(e)
+        }
+
+    }
 
     override fun onInit(view: View) {
         super.onInit(view)
@@ -153,7 +196,7 @@ abstract class CommonPlayerHelper(
             }
         }
 
-    protected fun onPrepared(videoSize: Vec2<Int>) {
+    private fun onPrepared(videoSize: Vec2<Int>) {
         TAG.logD { "onPrepared $videoSize" }
         _currentState.value = State.PREPARED
         this.videoSize = videoSize
@@ -169,12 +212,12 @@ abstract class CommonPlayerHelper(
         }
     }
 
-    protected fun onVideoSizeChanged(videoSize: Vec2<Int>) {
+    private fun onVideoSizeChanged(videoSize: Vec2<Int>) {
         TAG.logD { "onVideoSizeChanged $videoSize" }
         this.videoSize = videoSize
     }
 
-    protected fun onCompletion() {
+    private fun onCompletion() {
         TAG.logD { "onCompletion" }
         _currentState.value = State.PLAYBACK_COMPLETED
         targetState = State.PLAYBACK_COMPLETED
@@ -183,17 +226,11 @@ abstract class CommonPlayerHelper(
         }
     }
 
-    protected fun onError() {
-        TAG.logD { "onError" }
+    private fun onError(e: Throwable) {
+        TAG.logD(e) { "onError" }
         _currentState.value = State.ERROR
         targetState = State.ERROR
     }
-
-    protected abstract fun openVideo(
-        uri: Uri,
-        surface: Surface,
-        audioAttributes: AudioAttributes,
-    ): CommonPlayer?
 
     private fun openVideo() {
         val uri = uri ?: return
@@ -203,10 +240,12 @@ abstract class CommonPlayerHelper(
         if (audioFocusType != AudioManager.AUDIOFOCUS_NONE) {
             audioManager.requestAudioFocus(audioFocusRequest)
         }
-        commonPlayer = openVideo(
+        commonPlayer = factory.openVideo(
+            context = context,
             uri = uri,
             surface = surface,
             audioAttributes = audioAttributes,
+            listener = listener,
         )?.also {
             _currentState.value = State.PREPARING
         }

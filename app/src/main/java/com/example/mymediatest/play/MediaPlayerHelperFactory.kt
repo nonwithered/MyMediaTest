@@ -12,17 +12,11 @@ import java.io.IOException
 /**
  * @see android.media.MediaPlayer
  */
-class MediaPlayerHelper(
-    context: Context,
-) : CommonPlayerHelper(context),
-    MediaPlayer.OnPreparedListener,
-    MediaPlayer.OnVideoSizeChangedListener,
-    MediaPlayer.OnCompletionListener,
-    MediaPlayer.OnErrorListener {
+object MediaPlayerHelperFactory : CommonPlayerHelper.Factory {
 
     private class PlayerImpl(
         private val mp: MediaPlayer,
-    ): CommonPlayer {
+    ): CommonPlayerHelper.Controller {
 
         override val isPlaying: Boolean
             get() = mp.isPlaying
@@ -52,48 +46,36 @@ class MediaPlayerHelper(
     }
 
     override fun openVideo(
+        context: Context,
         uri: Uri,
         surface: Surface,
         audioAttributes: AudioAttributes,
-    ): CommonPlayer? {
-        val mp = MediaPlayer()
-        var impl: PlayerImpl? = null
-
-        val handleError: (Throwable) -> Unit = {
-            onError(mp, MediaPlayer.MEDIA_ERROR_UNKNOWN, 0)
-        }
-        runCatchingTyped(
-            IOException::class to handleError,
-            IllegalArgumentException::class to handleError,
+        listener: CommonPlayerHelper.Listener,
+    ): CommonPlayerHelper.Controller? {
+        return runCatchingTyped(
+            IOException::class to listener::onError,
+            IllegalArgumentException::class to listener::onError,
         ) {
-            mp.setOnPreparedListener(this)
-            mp.setOnVideoSizeChangedListener(this)
-            mp.setOnCompletionListener(this)
-            mp.setOnErrorListener(this)
+            val mp = MediaPlayer()
+            mp.setOnPreparedListener { _ ->
+                listener.onPrepared(mp.videoWidth to mp.videoHeight)
+            }
+            mp.setOnVideoSizeChangedListener { _, width, height ->
+                listener.onVideoSizeChanged(width to height)
+            }
+            mp.setOnCompletionListener { _ ->
+                listener.onCompletion()
+            }
+            mp.setOnErrorListener { _, what, extra ->
+                listener.onError(RuntimeException("OnErrorListener what=$what extra=$extra"))
+                true
+            }
             mp.setDataSource(context, uri)
             mp.setSurface(surface)
             mp.setAudioAttributes(audioAttributes)
             mp.setScreenOnWhilePlaying(true)
             mp.prepareAsync()
-            impl = PlayerImpl(mp)
-        }
-        return impl
-    }
-
-    override fun onPrepared(mp: MediaPlayer) {
-        super.onPrepared(mp.videoWidth to mp.videoHeight)
-    }
-
-    override fun onVideoSizeChanged(mp: MediaPlayer, width: Int, height: Int) {
-        super.onVideoSizeChanged(width to height)
-    }
-
-    override fun onCompletion(mp: MediaPlayer?) {
-        super.onCompletion()
-    }
-
-    override fun onError(mp: MediaPlayer, what: Int, extra: Int): Boolean {
-        super.onError()
-        return true
+            PlayerImpl(mp)
+        }.getOrNull()
     }
 }
