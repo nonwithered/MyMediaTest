@@ -23,13 +23,19 @@ interface AVSupport<T : AVSupport<T>> {
 
     fun AVStream<T>.sampleRate(): Int?
 
+    fun AVStream<T>.channelCount(): Int?
+
+    fun AVStream<T>.pcmEncoding(): Int?
+
     fun AVFormatContext<T>.seek(t: TimeStamp)
 
-    suspend fun AVFormatContext<T>.read(stream: AVStream<T>): AVPacket<T>?
+    fun AVFormatContext<T>.read(stream: AVStream<T>): AVPacket<T>?
 
     fun AVCodecContext<T>.send(packet: AVPacket<T>)
 
-    suspend fun AVCodecContext<T>.receive(): AVFrame<T>
+    fun AVCodecContext<T>.receive(): AVFrame<T>?
+
+    fun AVPacket<T>.eos(): Boolean
 
     fun AVFrame<T>.pts(): TimeStamp
 

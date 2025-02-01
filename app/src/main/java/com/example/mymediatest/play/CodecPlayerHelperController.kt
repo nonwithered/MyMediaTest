@@ -10,6 +10,7 @@ import android.os.SystemClock
 import android.view.Surface
 import com.example.mymediatest.play.base.CommonPlayerHelper
 import com.example.mymediatest.play.support.AVFrame
+import com.example.mymediatest.play.support.AVPacket
 import com.example.mymediatest.play.support.AVStream
 import com.example.mymediatest.play.support.AVSupport
 import com.example.mymediatest.utils.isAudio
@@ -158,14 +159,19 @@ class CodecPlayerHelperController<T : AVSupport<T>>(
 
     private fun createRenderer(stream: AVStream<T>): Renderer? {
         val mime = stream.mime()
+        val channelConfig = when (stream.channelCount()) {
+            1 -> AudioFormat.CHANNEL_OUT_MONO
+            else -> AudioFormat.CHANNEL_OUT_STEREO
+        }
+        val audioFormat = stream.pcmEncoding() ?: AudioFormat.ENCODING_PCM_16BIT
         return when {
             mime.isAudio -> AudioRender(
                 audioTrack = AudioTrack(
                     AudioManager.STREAM_MUSIC,
                     stream.sampleRate()!!,
-                    AudioFormat.CHANNEL_OUT_MONO,
-                    AudioFormat.ENCODING_PCM_16BIT,
-                    AudioTrack.getMinBufferSize(stream.sampleRate()!!, AudioFormat.CHANNEL_OUT_MONO, AudioFormat.ENCODING_PCM_16BIT),
+                    channelConfig,
+                    audioFormat,
+                    AudioTrack.getMinBufferSize(stream.sampleRate()!!, channelConfig, audioFormat),
                     AudioTrack.MODE_STREAM,
                 )
             )
@@ -192,25 +198,39 @@ class CodecPlayerHelperController<T : AVSupport<T>>(
 
     private suspend fun performDecode(stream: AVStream<T>, bufferChannel: Channel<AVFrame<T>?>, index: Int): Boolean {
         val mime = stream.mime()
-        val packet = formatContext.read(stream)
-        TAG.logD { "performDecode $index read $mime" }
-        if (packet === null) {
-            bufferChannel.send(null)
-            TAG.logD { "performDecode $index cancel" }
-            return false
+        val list = mutableListOf<AVPacket<T>>()
+        while (true) {
+            val packet = formatContext.read(stream)
+            if (packet === null) {
+                break
+            }
+            TAG.logD { "performDecode $index $mime read" }
+            list += packet
+            if (packet.eos()) {
+                break
+            }
+            stream.decoder().send(packet)
+            TAG.logD { "performDecode $index $mime send" }
         }
-        stream.decoder().send(packet)
-        TAG.logD { "performDecode $index send $mime" }
-        val buffer = stream.decoder().receive()
-        TAG.logD { "performDecode $index receive $mime" }
-        bufferChannel.send(buffer)
+        while (true) {
+            val buffer = stream.decoder().receive()
+            if (buffer === null) {
+                break
+            }
+            TAG.logD { "performDecode $index $mime receive" }
+            bufferChannel.send(buffer)
+            if (buffer.ptsMs >= duration) {
+                bufferChannel.send(null)
+                return false
+            }
+        }
         return true
     }
 
     private suspend fun performPlay(startTimeMs: Long) {
         coroutineScope {
             streams.forEachIndexed { index, _ ->
-                val renderer = renderes[index] ?: return@forEachIndexed
+                val renderer = renderes[index]
                 val bufferChannel = bufferChannels[index]
                 launch {
                     TAG.logD { "performPlay $index launch" }
@@ -224,26 +244,30 @@ class CodecPlayerHelperController<T : AVSupport<T>>(
         currentPosition = 0
     }
 
-    private suspend fun performPlay(renderer: Renderer, buffer: AVFrame<T>?, startTimeMs: Long, index: Int): Boolean {
+    private suspend fun performPlay(renderer: Renderer?, buffer: AVFrame<T>?, startTimeMs: Long, index: Int): Boolean {
         if (buffer === null) {
             TAG.logD { "performPlay $index cancel" }
             return false
         }
         val bytes = buffer.bytes()
+        val ptsMs = buffer.ptsMs
+        TAG.logD { "performPlay $index receive $ptsMs" }
         while (true) {
             val currentPosMs = currentPosition
-            val ptsMs = buffer.ptsMs
             while (true) {
                 val realPos = elapsedRealtime - startTimeMs
                 if (realPos >= ptsMs) {
                     break
                 }
-                delay(ptsMs - realPos)
+                val delayMs = ptsMs - realPos
+                TAG.logD { "performPlay $index delay $delayMs" }
+                delay(delayMs)
             }
             val offset = buffer.offset()
-            val consumed = renderer.onRender(bytes, offset)
+            val consumed = renderer?.onRender(bytes, offset) ?: (bytes.size - offset)
+            TAG.logD { "performPlay $index onRender $ptsMs" }
+            TAG.logD { "performPlay $index consume $offset ${bytes.size} $consumed" }
             if (offset + consumed >= bytes.size) {
-                TAG.logD { "performPlay $index onRender $ptsMs" }
                 if (renderer is AudioRender) {
                     _currentPosition.compareAndSet(currentPosMs, ptsMs)
                 }

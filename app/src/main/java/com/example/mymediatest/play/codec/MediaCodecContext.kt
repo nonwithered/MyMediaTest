@@ -25,27 +25,19 @@ class MediaCodecContext(
         codec.release()
     }
 
-    suspend fun dequeueInputBuffer(): Tuple2<Int, ByteBuffer> {
-        var bufferIndex: Int
-        while (true) {
-            bufferIndex = codec.dequeueInputBuffer(0)
-            if (bufferIndex >= 0) {
-                break
-            }
-            yield()
+    fun dequeueInputBuffer(): Tuple2<Int, ByteBuffer>? {
+        val bufferIndex = codec.dequeueInputBuffer(0)
+        if (bufferIndex < 0) {
+            return null
         }
         return bufferIndex to codec.getInputBuffer(bufferIndex)!!
     }
 
-    private suspend fun dequeueOutputBuffer(): Tuple3<Int, ByteBuffer, MediaCodec.BufferInfo> {
-        var bufferIndex: Int
+    private fun dequeueOutputBuffer(): Tuple3<Int, ByteBuffer, MediaCodec.BufferInfo>? {
         val bufferInfo = MediaCodec.BufferInfo()
-        while (true) {
-            bufferIndex = codec.dequeueOutputBuffer(bufferInfo, 0)
-            if (bufferIndex >= 0) {
-                break
-            }
-            yield()
+        val bufferIndex = codec.dequeueOutputBuffer(bufferInfo, 0)
+        if (bufferIndex < 0) {
+            return null
         }
         return bufferIndex to codec.getOutputBuffer(bufferIndex)!! cross bufferInfo
     }
@@ -70,8 +62,8 @@ class MediaCodecContext(
         )
     }
 
-    suspend fun receive(): MediaFrame {
-        val (bufferIndex, buffer, bufferInfo) = dequeueOutputBuffer()
+    fun receive(): MediaFrame? {
+        val (bufferIndex, buffer, bufferInfo) = dequeueOutputBuffer() ?: return null
         val bytes = ByteArray(bufferInfo.size)
         buffer.get(bytes)
         codec.releaseOutputBuffer(bufferIndex, false)

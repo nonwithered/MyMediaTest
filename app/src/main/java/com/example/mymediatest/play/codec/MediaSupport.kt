@@ -55,12 +55,22 @@ object MediaSupport : AVSupport<MediaSupport> {
         return stream.info.sampleRate
     }
 
+    override fun AVStream<MediaSupport>.channelCount(): Int? {
+        val stream = this as MediaStream
+        return stream.info.channelCount
+    }
+
+    override fun AVStream<MediaSupport>.pcmEncoding(): Int? {
+        val stream = this as MediaStream
+        return stream.info.pcmEncoding
+    }
+
     override fun AVFormatContext<MediaSupport>.seek(t: TimeStamp) {
         val formatContext = this as MediaFormatContext
         formatContext.seek(t)
     }
 
-    override suspend fun AVFormatContext<MediaSupport>.read(stream: AVStream<MediaSupport>): AVPacket<MediaSupport>? {
+    override fun AVFormatContext<MediaSupport>.read(stream: AVStream<MediaSupport>): AVPacket<MediaSupport>? {
         val formatContext = this as MediaFormatContext
         stream as MediaStream
         return formatContext.read(stream)
@@ -72,9 +82,14 @@ object MediaSupport : AVSupport<MediaSupport> {
         codecContext.send(packet)
     }
 
-    override suspend fun AVCodecContext<MediaSupport>.receive(): AVFrame<MediaSupport> {
+    override fun AVCodecContext<MediaSupport>.receive(): AVFrame<MediaSupport>? {
         val codecContext = this as MediaCodecContext
         return codecContext.receive()
+    }
+
+    override fun AVPacket<MediaSupport>.eos(): Boolean {
+        val packet = this as MediaPacket
+        return packet.sampleSize < 0
     }
 
     override fun AVFrame<MediaSupport>.pts(): TimeStamp {
