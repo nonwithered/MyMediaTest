@@ -1,10 +1,16 @@
 package com.example.shared.utils
 
+import android.os.Handler
+import android.os.HandlerThread
+import kotlinx.coroutines.CoroutineName
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.MainScope
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
+import java.util.concurrent.Executor
 import java.util.concurrent.locks.Lock
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
@@ -15,6 +21,28 @@ import kotlin.coroutines.suspendCoroutine
 val mainScope by lazy {
     MainScope()
 }
+
+val Handler.asExecutor: Executor
+    get() = Executor { r ->
+        post(r)
+    }
+
+private val HandlerThread.asCoroutineContext: CoroutineContext
+    get() {
+        if (!isAlive) {
+            start()
+        }
+        return Handler(looper).asExecutor.asCoroutineDispatcher() + SupervisorJob() + CoroutineName(name)
+    }
+
+val HandlerThread.asCoroutineScope: CoroutineScope
+    get() = CoroutineScope(asCoroutineContext).apply {
+        launch {
+            onDispose {
+                quitSafely()
+            }
+        }
+    }
 
 fun Job.dispose() {
     cancel()
