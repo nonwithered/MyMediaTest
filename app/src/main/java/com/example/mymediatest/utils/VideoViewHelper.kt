@@ -1,4 +1,4 @@
-package com.example.mymediatest.player.utils
+package com.example.mymediatest.utils
 
 import android.view.SurfaceView.getDefaultSize
 import android.view.View.MeasureSpec

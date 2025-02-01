@@ -1,4 +1,4 @@
-package com.example.mymediatest.player.wrapper
+package com.example.mymediatest.play
 
 import android.content.Context
 import android.media.AudioAttributes
@@ -10,8 +10,9 @@ import android.media.MediaExtractor
 import android.media.MediaFormat
 import android.net.Uri
 import android.view.Surface
-import com.example.mymediatest.player.utils.MediaFormatProperties
-import com.example.mymediatest.player.utils.useTrack
+import com.example.mymediatest.play.base.CommonPlayerHelper
+import com.example.shared.bean.MediaFormatProperties
+import com.example.mymediatest.utils.useTrack
 import com.example.shared.utils.TAG
 import com.example.shared.utils.elseEmpty
 import com.example.shared.utils.elseFalse

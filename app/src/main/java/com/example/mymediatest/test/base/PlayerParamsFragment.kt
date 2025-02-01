@@ -15,7 +15,7 @@ import kotlin.reflect.KClass
 import kotlin.reflect.KMutableProperty0
 import kotlin.reflect.KProperty
 
-open class PlayerParamsFragment<P: PlayerParamsFragment.BaseParams, T : Any> : PlayerFragment<T>() {
+abstract class PlayerParamsFragment<P: PlayerParamsFragment.BaseParams, T : Any> : PlayerFragment<T>() {
 
     protected val params: P by lazy {
         val p = javaClass

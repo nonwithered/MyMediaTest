@@ -1,4 +1,4 @@
-package com.example.mymediatest.player
+package com.example.mymediatest.play.base
 
 import android.content.Context
 import android.view.View

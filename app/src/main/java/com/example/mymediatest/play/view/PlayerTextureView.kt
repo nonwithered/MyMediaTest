@@ -1,8 +1,9 @@
-package com.example.mymediatest.player
+package com.example.mymediatest.play.view
 
 import android.content.Context
 import android.util.AttributeSet
 import android.view.TextureView
+import com.example.mymediatest.play.base.BasePlayerHelper
 import com.example.shared.utils.LateInitProxy
 import com.example.shared.utils.accessibilityClassNameAdapter
 

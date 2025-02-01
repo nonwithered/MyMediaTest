@@ -1,7 +1,6 @@
-package com.example.mymediatest.player.utils
+package com.example.shared.bean
 
 import android.media.MediaFormat
-import com.example.shared.bean.BaseProperties
 import java.nio.ByteBuffer
 import kotlin.reflect.KClass
 
