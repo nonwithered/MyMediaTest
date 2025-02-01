@@ -2,7 +2,6 @@ package com.example.mymediatest.play.support
 
 import android.content.Context
 import android.net.Uri
-import com.example.mymediatest.play.codec.MediaSupport
 import com.example.shared.utils.TimeStamp
 
 interface AVSupport<T : AVSupport<T>> {
@@ -12,19 +11,31 @@ interface AVSupport<T : AVSupport<T>> {
         uri: Uri,
     ): AVFormatContext<T>
 
-    fun streams(formatContext: AVFormatContext<T>): List<AVStream<T>>
+    fun AVFormatContext<T>.streams(): List<AVStream<T>>
 
-    fun decoder(stream: AVStream<T>): AVCodecContext<T>
+    fun AVStream<T>.decoder(): AVCodecContext<T>
 
-    fun dts(packet: AVPacket<T>): TimeStamp
+    fun AVStream<T>.duration(): TimeStamp
 
-    fun pts(frame: AVFrame<T>): TimeStamp
+    fun AVStream<T>.mime(): String
 
-    fun seek(formatContext: AVFormatContext<T>, t: TimeStamp)
+    fun AVStream<T>.pos(): TimeStamp
 
-    suspend fun read(formatContext: AVFormatContext<T>, stream: AVStream<MediaSupport>): AVPacket<MediaSupport>?
+    fun AVStream<T>.sampleRate(): Int?
 
-    fun send(codecContext: AVCodecContext<T>, packet: AVPacket<T>)
+    fun AVFormatContext<T>.seek(t: TimeStamp)
 
-    suspend fun receive(codecContext: AVCodecContext<T>): AVFrame<T>
+    suspend fun AVFormatContext<T>.read(stream: AVStream<T>): AVPacket<T>?
+
+    fun AVCodecContext<T>.send(packet: AVPacket<T>)
+
+    suspend fun AVCodecContext<T>.receive(): AVFrame<T>
+
+    fun AVFrame<T>.pts(): TimeStamp
+
+    fun AVFrame<T>.offset(): Int
+
+    fun AVFrame<T>.bytes(): ByteArray
+
+    fun AVFrame<T>.consume(consumed: Int)
 }

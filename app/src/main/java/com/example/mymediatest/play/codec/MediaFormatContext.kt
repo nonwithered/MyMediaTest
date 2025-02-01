@@ -11,8 +11,7 @@ import com.example.shared.utils.cross
 class MediaFormatContext(
     context: Context,
     uri: Uri,
-) : AVFormatContext<MediaSupport>,
-    AutoCloseable {
+) : AVFormatContext<MediaSupport> {
 
     private val extractor = MediaExtractor().apply {
         setDataSource(context, uri, null)

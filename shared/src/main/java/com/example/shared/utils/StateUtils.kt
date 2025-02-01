@@ -7,6 +7,9 @@ import kotlinx.coroutines.flow.StateFlow
 import java.lang.ref.Reference
 import java.lang.ref.WeakReference
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicInteger
+import java.util.concurrent.atomic.AtomicLong
 import java.util.concurrent.atomic.AtomicReference
 import java.util.concurrent.locks.Lock
 import java.util.concurrent.locks.ReentrantLock
@@ -34,6 +37,30 @@ operator fun <T> AtomicReference<T>.getValue(owner: Any?, property: KProperty<*>
 }
 
 operator fun <T> AtomicReference<T>.setValue(owner: Any?, property: KProperty<*>, v: T?) {
+    set(v)
+}
+
+operator fun AtomicBoolean.getValue(owner: Any?, property: KProperty<*>): Boolean {
+    return get()
+}
+
+operator fun AtomicBoolean.setValue(owner: Any?, property: KProperty<*>, v: Boolean) {
+    set(v)
+}
+
+operator fun AtomicInteger.getValue(owner: Any?, property: KProperty<*>): Int {
+    return get()
+}
+
+operator fun AtomicInteger.setValue(owner: Any?, property: KProperty<*>, v: Int) {
+    set(v)
+}
+
+operator fun AtomicLong.getValue(owner: Any?, property: KProperty<*>): Long {
+    return get()
+}
+
+operator fun AtomicLong.setValue(owner: Any?, property: KProperty<*>, v: Long) {
     set(v)
 }
 

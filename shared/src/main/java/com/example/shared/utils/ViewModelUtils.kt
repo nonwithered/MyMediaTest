@@ -88,6 +88,7 @@ suspend fun <V> LiveData<V>.collect(block: suspend (V?) -> Unit): Nothing {
         }
         channel.forEach {
             block(it)
+            true
         }
         job.await()
     }

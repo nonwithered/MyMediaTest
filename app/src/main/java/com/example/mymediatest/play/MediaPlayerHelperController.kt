@@ -21,30 +21,25 @@ class MediaPlayerHelperController(
     listener = listener,
 ) {
 
-    private val mp: MediaPlayer
-
-    init {
-        val mp = MediaPlayer()
-        mp.setOnPreparedListener { _ ->
-            listener.onPrepared(mp.videoWidth to mp.videoHeight)
+    private val mp = MediaPlayer().apply {
+        setOnPreparedListener { _ ->
+            listener.onPrepared(videoWidth to videoHeight)
         }
-        mp.setOnVideoSizeChangedListener { _, width, height ->
+        setOnVideoSizeChangedListener { _, width, height ->
             listener.onVideoSizeChanged(width to height)
         }
-        mp.setOnCompletionListener { _ ->
+        setOnCompletionListener { _ ->
             listener.onCompletion()
         }
-        mp.setOnErrorListener { _, what, extra ->
+        setOnErrorListener { _, what, extra ->
             listener.onError(RuntimeException("OnErrorListener what=$what extra=$extra"))
             true
         }
-        mp.setDataSource(context, uri)
-        mp.setSurface(surface)
-        mp.setScreenOnWhilePlaying(true)
-        mp.prepareAsync()
-        this.mp = mp
+        setDataSource(context, uri)
+        setSurface(surface)
+        setScreenOnWhilePlaying(true)
+        prepareAsync()
     }
-
 
     override val isPlaying: Boolean
         get() = mp.isPlaying
@@ -55,8 +50,8 @@ class MediaPlayerHelperController(
     override val currentPosition: Long
         get() = mp.currentPosition.toLong()
 
-    override fun seekTo(pos: Int) {
-        mp.seekTo(pos)
+    override fun seekTo(pos: Long) {
+        mp.seekTo(pos.toInt())
     }
 
     override fun start() {

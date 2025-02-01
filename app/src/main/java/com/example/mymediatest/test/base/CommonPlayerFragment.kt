@@ -7,11 +7,10 @@ import com.example.mymediatest.play.base.CommonPlayerHelper
 import com.example.shared.utils.TAG
 import com.example.shared.utils.bind
 import com.example.shared.utils.logD
-import kotlin.reflect.KClass
 
 abstract class CommonPlayerFragment<P : PlayerParamsFragment.BaseParams, V: BasePlayerHelper.Holder> : PlayerParamsFragment<P, V>() {
 
-    protected abstract val factory: KClass<out CommonPlayerHelper.Controller>
+    protected abstract val factory: CommonPlayerHelper.Factory
 
     private val player: CommonPlayerHelper by lazy {
         CommonPlayerHelper(
@@ -42,7 +41,7 @@ abstract class CommonPlayerFragment<P : PlayerParamsFragment.BaseParams, V: Base
         }
         bind(playerVM.currentPosition) {
             if (!player.isPlaying) {
-                player.seekTo(it.toInt())
+                player.seekTo(it)
             }
         }
         bind(player.currentState) {

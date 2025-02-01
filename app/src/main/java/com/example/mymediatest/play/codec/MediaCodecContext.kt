@@ -9,7 +9,7 @@ import com.example.shared.utils.cross
 import kotlinx.coroutines.yield
 import java.nio.ByteBuffer
 
-class MediaCodecContext (
+class MediaCodecContext(
     format: MediaFormat,
     private val codec: MediaCodec,
 ) : AVCodecContext<MediaSupport>,

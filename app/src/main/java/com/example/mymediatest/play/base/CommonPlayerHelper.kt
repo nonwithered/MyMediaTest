@@ -17,20 +17,30 @@ import com.example.shared.utils.Vec2
 import com.example.shared.utils.asConst
 import com.example.shared.utils.logD
 import com.example.shared.utils.logI
-import com.example.shared.utils.newInstanceSafe
+import com.example.shared.utils.mainScope
 import com.example.shared.utils.systemService
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlin.reflect.KClass
+import kotlinx.coroutines.launch
 
 /**
  * @see android.widget.VideoView
  */
 class CommonPlayerHelper(
     context: Context,
-    private val factory: KClass<out Controller>,
+    private val factory: Factory,
 ) : BasePlayerHelper(context),
     SurfaceHolder.Callback2,
     TextureView.SurfaceTextureListener {
+
+    fun interface Factory {
+
+        fun createController(
+            context: Context,
+            uri: Uri,
+            surface: Surface,
+            listener: Listener,
+        ): Controller
+    }
 
     interface Listener {
 
@@ -44,10 +54,10 @@ class CommonPlayerHelper(
     }
 
     abstract class Controller(
-        context: Context,
-        uri: Uri,
-        surface: Surface,
-        listener: Listener,
+        protected val context: Context,
+        protected val uri: Uri,
+        protected val surface: Surface,
+        protected val listener: Listener,
     ) : AutoCloseable {
 
         abstract val isPlaying: Boolean
@@ -56,7 +66,7 @@ class CommonPlayerHelper(
 
         abstract val currentPosition: Long
 
-        abstract fun seekTo(pos: Int)
+        abstract fun seekTo(pos: Long)
 
         abstract fun start()
 
@@ -118,12 +128,12 @@ class CommonPlayerHelper(
             val isValidState = targetState == State.PLAYING
             val hasValidSize = videoSize == value
             if (commonPlayer !== null && isValidState && hasValidSize) {
-                seekWhenPrepared.takeIf { pos -> pos != 0 }?.let { pos -> seekTo(pos) }
+                seekWhenPrepared.takeIf { pos -> pos != 0L }?.let { pos -> seekTo(pos) }
                 start()
             }
         }
 
-    private var seekWhenPrepared = 0
+    private var seekWhenPrepared = 0L
 
     private var commonPlayer: Controller? = null
 
@@ -141,19 +151,27 @@ class CommonPlayerHelper(
     private val listener = object : Listener {
 
         override fun onPrepared(videoSize: Vec2<Int>) {
-            this@CommonPlayerHelper.onPrepared(videoSize)
+            mainScope.launch {
+                this@CommonPlayerHelper.onPrepared(videoSize)
+            }
         }
 
         override fun onVideoSizeChanged(videoSize: Vec2<Int>) {
-            this@CommonPlayerHelper.onVideoSizeChanged(videoSize)
+            mainScope.launch {
+                this@CommonPlayerHelper.onVideoSizeChanged(videoSize)
+            }
         }
 
         override fun onCompletion() {
-            this@CommonPlayerHelper.onCompletion()
+            mainScope.launch {
+                this@CommonPlayerHelper.onCompletion()
+            }
         }
 
         override fun onError(e: Throwable) {
-            this@CommonPlayerHelper.onError(e)
+            mainScope.launch {
+                this@CommonPlayerHelper.onError(e)
+            }
         }
 
     }
@@ -196,7 +214,7 @@ class CommonPlayerHelper(
         TAG.logD { "onPrepared $videoSize" }
         _currentState.value = State.PREPARED
         this.videoSize = videoSize
-        seekWhenPrepared.takeIf { pos -> pos != 0 }?.let { pos -> seekTo(pos) }
+        seekWhenPrepared.takeIf { pos -> pos != 0L }?.let { pos -> seekTo(pos) }
         if (videoSize.first == 0 || videoSize.second == 0) {
             if (targetState == State.PLAYING) {
                 start()
@@ -236,12 +254,16 @@ class CommonPlayerHelper(
         if (audioFocusType != AudioManager.AUDIOFOCUS_NONE) {
             audioManager.requestAudioFocus(audioFocusRequest)
         }
-        commonPlayer = factory.newInstanceSafe(
-            Context::class to context,
-            Uri::class to  uri,
-            Surface::class to surface,
-            Listener::class to listener,
-        ).getOrNull()?.also {
+        commonPlayer = kotlin.runCatching {
+            factory.createController(
+                context,
+                uri,
+                surface,
+                listener,
+            )
+        }.onFailure { e ->
+            listener.onError(e)
+        }.getOrNull()?.also {
             _currentState.value = State.PREPARING
         }
     }
@@ -298,7 +320,7 @@ class CommonPlayerHelper(
             return 0
         }
 
-    fun seekTo(pos: Int) {
+    fun seekTo(pos: Long) {
         seekWhenPrepared = if (isInPlaybackState) {
             commonPlayer?.seekTo(pos)
             0

@@ -241,8 +241,8 @@ class MediaCodecPlayerHelperFactory(
     override val currentPosition: Long
         get() = TimeUnit.MICROSECONDS.toMillis(render?.currentPosition.elseZero)
 
-    override fun seekTo(pos: Int) {
-        val position = TimeUnit.MILLISECONDS.toMicros(pos.toLong())
+    override fun seekTo(pos: Long) {
+        val position = TimeUnit.MILLISECONDS.toMicros(pos)
         render?.currentPosition = position
     }
 

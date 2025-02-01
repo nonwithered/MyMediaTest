@@ -17,9 +17,11 @@ class MediaStream(
     ) : MediaFormatProperties(format) {
 
         val mime: String? by MediaFormat.KEY_MIME.property()
+        val durationUs: Long? by MediaFormat.KEY_DURATION.property()
+        var sampleRate: Int? by MediaFormat.KEY_SAMPLE_RATE.property()
     }
 
-    private val info = TrackInfo(format)
+    val info = TrackInfo(format)
 
     val decoder = MediaCodecContext(
         format = info.format,

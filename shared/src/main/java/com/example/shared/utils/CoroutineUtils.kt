@@ -4,8 +4,8 @@ import android.os.Handler
 import android.os.HandlerThread
 import kotlinx.coroutines.CoroutineName
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.cancel
@@ -18,8 +18,8 @@ import kotlin.coroutines.CoroutineContext
 import kotlin.coroutines.EmptyCoroutineContext
 import kotlin.coroutines.suspendCoroutine
 
-val mainScope by lazy {
-    MainScope()
+val mainScope: CoroutineScope by lazy {
+    CoroutineScope(SupervisorJob() + Dispatchers.Main)
 }
 
 val Handler.asExecutor: Executor
