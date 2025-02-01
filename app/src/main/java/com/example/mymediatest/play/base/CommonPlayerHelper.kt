@@ -17,29 +17,20 @@ import com.example.shared.utils.Vec2
 import com.example.shared.utils.asConst
 import com.example.shared.utils.logD
 import com.example.shared.utils.logI
+import com.example.shared.utils.newInstanceSafe
 import com.example.shared.utils.systemService
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlin.reflect.KClass
 
 /**
  * @see android.widget.VideoView
  */
 class CommonPlayerHelper(
     context: Context,
-    private val factory: Factory,
+    private val factory: KClass<out Controller>,
 ) : BasePlayerHelper(context),
     SurfaceHolder.Callback2,
     TextureView.SurfaceTextureListener {
-
-    fun interface Factory {
-
-        fun openVideo(
-            context: Context,
-            uri: Uri,
-            surface: Surface,
-            audioAttributes: AudioAttributes,
-            listener: Listener,
-        ): Controller?
-    }
 
     interface Listener {
 
@@ -52,19 +43,24 @@ class CommonPlayerHelper(
         fun onError(e: Throwable)
     }
 
-    interface Controller : AutoCloseable {
+    abstract class Controller(
+        context: Context,
+        uri: Uri,
+        surface: Surface,
+        listener: Listener,
+    ) : AutoCloseable {
 
-        val isPlaying: Boolean
+        abstract val isPlaying: Boolean
 
-        val duration: Long
+        abstract val duration: Long
 
-        val currentPosition: Long
+        abstract val currentPosition: Long
 
-        fun seekTo(pos: Int)
+        abstract fun seekTo(pos: Int)
 
-        fun start()
+        abstract fun start()
 
-        fun pause()
+        abstract fun pause()
     }
 
     enum class State {
@@ -240,13 +236,12 @@ class CommonPlayerHelper(
         if (audioFocusType != AudioManager.AUDIOFOCUS_NONE) {
             audioManager.requestAudioFocus(audioFocusRequest)
         }
-        commonPlayer = factory.openVideo(
-            context = context,
-            uri = uri,
-            surface = surface,
-            audioAttributes = audioAttributes,
-            listener = listener,
-        )?.also {
+        commonPlayer = factory.newInstanceSafe(
+            Context::class to context,
+            Uri::class to  uri,
+            Surface::class to surface,
+            Listener::class to listener,
+        ).getOrNull()?.also {
             _currentState.value = State.PREPARING
         }
     }

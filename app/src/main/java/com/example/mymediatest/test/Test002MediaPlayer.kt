@@ -3,10 +3,11 @@ package com.example.mymediatest.test
 import android.os.Bundle
 import androidx.annotation.LayoutRes
 import com.example.mymediatest.R
-import com.example.mymediatest.play.MediaPlayerHelperFactory
+import com.example.mymediatest.play.MediaPlayerHelperController
 import com.example.mymediatest.play.base.BasePlayerHelper
 import com.example.mymediatest.play.base.CommonPlayerHelper
 import com.example.mymediatest.test.base.CommonPlayerFragment
+import kotlin.reflect.KClass
 
 class Test002MediaPlayer : CommonPlayerFragment<Test002MediaPlayer.Params, BasePlayerHelper.Holder>() {
 
@@ -41,6 +42,6 @@ class Test002MediaPlayer : CommonPlayerFragment<Test002MediaPlayer.Params, BaseP
     override val playerLayoutId: Int
         get() = params.viewType.playerLayoutId
     
-    override val factory: CommonPlayerHelper.Factory
-        get() = MediaPlayerHelperFactory
+    override val factory: KClass<out CommonPlayerHelper.Controller>
+        get() = MediaPlayerHelperController::class
 }

@@ -7,10 +7,11 @@ import com.example.mymediatest.play.base.CommonPlayerHelper
 import com.example.shared.utils.TAG
 import com.example.shared.utils.bind
 import com.example.shared.utils.logD
+import kotlin.reflect.KClass
 
 abstract class CommonPlayerFragment<P : PlayerParamsFragment.BaseParams, V: BasePlayerHelper.Holder> : PlayerParamsFragment<P, V>() {
 
-    protected abstract val factory: CommonPlayerHelper.Factory
+    protected abstract val factory: KClass<out CommonPlayerHelper.Controller>
 
     private val player: CommonPlayerHelper by lazy {
         CommonPlayerHelper(

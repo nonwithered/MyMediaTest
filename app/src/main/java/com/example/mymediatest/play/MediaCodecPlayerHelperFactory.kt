@@ -24,7 +24,17 @@ import kotlinx.coroutines.launch
 import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.TimeUnit
 
-object MediaCodecPlayerHelperFactory : CommonPlayerHelper.Factory {
+class MediaCodecPlayerHelperFactory(
+    context: Context,
+    uri: Uri,
+    surface: Surface,
+    listener: CommonPlayerHelper.Listener,
+) : CommonPlayerHelper.Controller(
+    context = context,
+    uri = uri,
+    surface = surface,
+    listener = listener,
+) {
 
     private class TrackFormat(
         val index: Int,
@@ -182,135 +192,11 @@ object MediaCodecPlayerHelperFactory : CommonPlayerHelper.Factory {
         val bytes: ByteArray,
     )
 
-    private class PlayerImpl(
-        private val decodeWorker: DecodeWorker,
-    ) : CommonPlayerHelper.Controller {
+    private val decodeWorker: DecodeWorker
 
-        private val audioTrack: AudioTrack
+    private val audioTrack: AudioTrack
 
-        init {
-            Thread(decodeWorker).start()
-            val music = findAudioTrack()!!
-            audioTrack = AudioTrack(
-                AudioManager.STREAM_MUSIC,
-                music.format.sampleRate!!,
-                AudioFormat.CHANNEL_OUT_MONO,
-                AudioFormat.ENCODING_PCM_16BIT,
-                AudioTrack.getMinBufferSize(music.format.sampleRate!!, AudioFormat.CHANNEL_OUT_MONO, AudioFormat.ENCODING_PCM_16BIT),
-                AudioTrack.MODE_STREAM,
-            )
-        }
-
-        private var render: RenderThread? = null
-
-        override val isPlaying: Boolean
-            get() = render?.isResume.elseFalse
-
-        override val duration: Long
-            get() = TimeUnit.MICROSECONDS.toMillis(decodeWorker.decoder.track.maxOf { it.format.durationUs.elseZero })
-
-        override val currentPosition: Long
-            get() = TimeUnit.MICROSECONDS.toMillis(render?.currentPosition.elseZero)
-
-        override fun seekTo(pos: Int) {
-            val position = TimeUnit.MILLISECONDS.toMicros(pos.toLong())
-            render?.currentPosition = position
-        }
-
-        override fun start() {
-            audioTrack.play()
-            render?.run {
-                isResume = true
-                isFinished = false
-                return
-            }
-            render = RenderThread(findAudioTrack()!!, audioTrack)
-            Thread(render!!).start()
-        }
-
-        override fun pause() {
-            audioTrack.pause()
-            render?.isResume = false
-        }
-
-        override fun close() {
-            decodeWorker.shouldExit = true
-            render?.shouldExit = true
-            audioTrack.stop()
-            audioTrack.release()
-        }
-
-        private fun findAudioTrack(): TrackDecoder? {
-            return decodeWorker.decoder.track.firstOrNull {
-                it.format.mime.elseEmpty.startsWith("audio/")
-            }
-        }
-
-        private inner class RenderThread(
-            val decodeTrack: TrackDecoder,
-            val audioTrack: AudioTrack,
-        ) : Runnable {
-
-            @Volatile
-            var isResume = true
-
-            @Volatile
-            var currentPosition = 0L
-
-            @Volatile
-            var shouldExit = false
-
-            @Volatile
-            var isFinished = false
-
-            override fun run() {
-                while (!shouldExit) {
-                    val pos = TimeUnit.MICROSECONDS.toMillis(currentPosition)
-                    if (pos >= duration) {
-                        if (!isFinished) {
-                            isFinished = true
-                            mainScope.launch {
-                                decodeWorker.listener.onCompletion()
-                            }
-                        }
-                        continue
-                    }
-                    if (!isResume) {
-                        continue
-                    }
-                    runOnce()
-                }
-            }
-
-            private fun runOnce() {
-                var last: SampleData? = null
-                for (it in decodeTrack.buffer) {
-                    if (currentPosition <= 0) {
-                        last = it
-                        break
-                    }
-                    if ((last === null || last.sampleTime <= currentPosition) && it.sampleTime > currentPosition) {
-                        last = it
-                        break
-                    }
-                    last = it
-                }
-                last ?: return
-                currentPosition = last.sampleTime // TODO: fix seek
-                val bytes = last.bytes
-                TAG.logD { "audioTrack write $currentPosition ${bytes.size}" }
-                audioTrack.write(bytes, 0, bytes.size)
-            }
-        }
-    }
-
-    override fun openVideo(
-        context: Context,
-        uri: Uri,
-        surface: Surface,
-        audioAttributes: AudioAttributes,
-        listener: CommonPlayerHelper.Listener,
-    ): CommonPlayerHelper.Controller {
+    init {
         val extractor = MediaExtractor()
         extractor.setDataSource(context, uri, null)
         val track = (0 until extractor.trackCount).map {
@@ -330,9 +216,119 @@ object MediaCodecPlayerHelperFactory : CommonPlayerHelper.Factory {
             extractor = extractor,
             track = track,
         )
-        val player = PlayerImpl(
-            decodeWorker = DecodeWorker(decoder, listener),
+        decodeWorker = DecodeWorker(decoder, listener)
+
+        Thread(decodeWorker).start()
+        val music = findAudioTrack()!!
+        audioTrack = AudioTrack(
+            AudioManager.STREAM_MUSIC,
+            music.format.sampleRate!!,
+            AudioFormat.CHANNEL_OUT_MONO,
+            AudioFormat.ENCODING_PCM_16BIT,
+            AudioTrack.getMinBufferSize(music.format.sampleRate!!, AudioFormat.CHANNEL_OUT_MONO, AudioFormat.ENCODING_PCM_16BIT),
+            AudioTrack.MODE_STREAM,
         )
-        return player
+    }
+
+    private var render: RenderThread? = null
+
+    override val isPlaying: Boolean
+        get() = render?.isResume.elseFalse
+
+    override val duration: Long
+        get() = TimeUnit.MICROSECONDS.toMillis(decodeWorker.decoder.track.maxOf { it.format.durationUs.elseZero })
+
+    override val currentPosition: Long
+        get() = TimeUnit.MICROSECONDS.toMillis(render?.currentPosition.elseZero)
+
+    override fun seekTo(pos: Int) {
+        val position = TimeUnit.MILLISECONDS.toMicros(pos.toLong())
+        render?.currentPosition = position
+    }
+
+    override fun start() {
+        audioTrack.play()
+        render?.run {
+            isResume = true
+            isFinished = false
+            return
+        }
+        render = RenderThread(findAudioTrack()!!, audioTrack)
+        Thread(render!!).start()
+    }
+
+    override fun pause() {
+        audioTrack.pause()
+        render?.isResume = false
+    }
+
+    override fun close() {
+        decodeWorker.shouldExit = true
+        render?.shouldExit = true
+        audioTrack.stop()
+        audioTrack.release()
+    }
+
+    private fun findAudioTrack(): TrackDecoder? {
+        return decodeWorker.decoder.track.firstOrNull {
+            it.format.mime.elseEmpty.startsWith("audio/")
+        }
+    }
+
+    private inner class RenderThread(
+        val decodeTrack: TrackDecoder,
+        val audioTrack: AudioTrack,
+    ) : Runnable {
+
+        @Volatile
+        var isResume = true
+
+        @Volatile
+        var currentPosition = 0L
+
+        @Volatile
+        var shouldExit = false
+
+        @Volatile
+        var isFinished = false
+
+        override fun run() {
+            while (!shouldExit) {
+                val pos = TimeUnit.MICROSECONDS.toMillis(currentPosition)
+                if (pos >= duration) {
+                    if (!isFinished) {
+                        isFinished = true
+                        mainScope.launch {
+                            decodeWorker.listener.onCompletion()
+                        }
+                    }
+                    continue
+                }
+                if (!isResume) {
+                    continue
+                }
+                runOnce()
+            }
+        }
+
+        private fun runOnce() {
+            var last: SampleData? = null
+            for (it in decodeTrack.buffer) {
+                if (currentPosition <= 0) {
+                    last = it
+                    break
+                }
+                if ((last === null || last.sampleTime <= currentPosition) && it.sampleTime > currentPosition) {
+                    last = it
+                    break
+                }
+                last = it
+            }
+            last ?: return
+            currentPosition = last.sampleTime // TODO: fix seek
+            val bytes = last.bytes
+            TAG.logD { "audioTrack write $currentPosition ${bytes.size}" }
+            audioTrack.write(bytes, 0, bytes.size)
+        }
     }
 }

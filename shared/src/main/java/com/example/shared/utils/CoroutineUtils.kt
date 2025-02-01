@@ -11,7 +11,6 @@ import kotlin.concurrent.withLock
 import kotlin.coroutines.CoroutineContext
 import kotlin.coroutines.EmptyCoroutineContext
 import kotlin.coroutines.suspendCoroutine
-import kotlin.reflect.KClass
 
 val mainScope by lazy {
     MainScope()
@@ -32,37 +31,6 @@ inline fun <reified E : Throwable, R> runCatchingTyped(block: () -> R): Result<R
             null
         }
     }
-}
-
-fun <R> runCatchingTyped(types: Map<KClass<out Throwable>, (Throwable) -> R?>, block: () -> R): Result<R?> {
-    return runCatching {
-        try {
-            block()
-        } catch (e: Throwable) {
-            var match = false
-            var result: R? = null
-            types.forEach { (k, v) ->
-                if (!match && k.isInstance(e)) {
-                    match = true
-                    @Suppress("UNCHECKED_CAST")
-                    result = v(e)
-                }
-            }
-            if (!match) {
-                throw e
-            }
-            result
-        }
-    }
-}
-
-fun <R> runCatchingTyped(vararg types: Pair<KClass<out Throwable>, (Throwable) -> R?>, block: () -> R): Result<R?> {
-    return runCatchingTyped(types.toMap(), block)
-}
-
-@JvmName("runCatchingTypedDefault")
-fun <R> runCatchingTyped(vararg types: Pair<KClass<out Throwable>, (Throwable) -> Unit>, block: () -> R): Result<R?> {
-    return runCatchingTyped(types.toMap().mapValues { { e -> it.value(e); null } }, block)
 }
 
 fun <T : Any> T.autoRefScope(coroutineContext: CoroutineContext = EmptyCoroutineContext): CoroutineScope {
