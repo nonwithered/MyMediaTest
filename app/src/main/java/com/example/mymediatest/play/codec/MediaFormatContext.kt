@@ -6,8 +6,10 @@ import android.media.MediaExtractor
 import android.net.Uri
 import com.example.mymediatest.play.support.AVFormatContext
 import com.example.mymediatest.utils.useTrack
+import com.example.shared.utils.TAG
 import com.example.shared.utils.TimeStamp
 import com.example.shared.utils.cross
+import com.example.shared.utils.logD
 
 class MediaFormatContext(
     context: Context,
@@ -44,16 +46,20 @@ class MediaFormatContext(
         }
         val decoder = stream.decoder
         val (bufferIndex, buffer) = decoder.dequeueInputBuffer() ?: return null
-        val (sampleSize, sampleTime, sampleFlags) = extractor.useTrack(streams.indexOf(stream)) {
+        val trackIndex = streams.indexOf(stream)
+        val (sampleSize, sampleTime, sampleFlags) = extractor.useTrack(trackIndex) {
             extractor.seekTo(stream.posUs, MediaExtractor.SEEK_TO_PREVIOUS_SYNC)
             var sampleTime: Long
+            var count = 0
             while (true) {
                 sampleTime = extractor.sampleTime
                 if (sampleTime < 0 || sampleTime > stream.posUs) {
                     break
                 }
                 extractor.advance()
+                count++
             }
+            TAG.logD { "read $trackIndex advance $count" }
             stream.posUs = sampleTime
             val sampleSize = extractor.readSampleData(buffer, 0)
             if (sampleSize < 0) {
