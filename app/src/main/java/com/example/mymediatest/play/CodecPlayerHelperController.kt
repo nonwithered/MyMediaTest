@@ -287,7 +287,7 @@ class CodecPlayerHelperController<T : AVSupport<T>>(
             val curTime = elapsedRealtime
             val frame = stream.decoder().receive()
             val ptsMs = frame?.ptsMs
-            TAG.logD { "performDecode $index frame receive $mime $ptsMs" }
+            TAG.logD { "performDecode $index frame receive $mime $ptsMs $eosStat $lastTime $curTime" }
             val eos = if (ptsMs === null) {
                 eosStat && lastTime != Long.MIN_VALUE && lastTime + 100 < curTime
             } else {

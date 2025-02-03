@@ -11,6 +11,8 @@ class MediaStream(
 
     var posUs = -1L
 
+    var needSeek = false
+
     class TrackInfo(
         val format: MediaFormat,
     ) : MediaFormatProperties(format) {
