@@ -6,4 +6,5 @@ class MediaFrame(
     val bytes: ByteArray,
     var offset: Int,
     val presentationTimeUs: Long,
+    val flags: Int,
 ) : AVFrame<MediaSupport>

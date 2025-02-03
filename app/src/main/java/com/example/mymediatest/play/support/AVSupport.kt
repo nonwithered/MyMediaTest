@@ -44,4 +44,6 @@ interface AVSupport<T : AVSupport<T>> {
     fun AVFrame<T>.bytes(): ByteArray
 
     fun AVFrame<T>.consume(consumed: Int)
+
+    fun AVFrame<T>.eos(): Boolean
 }

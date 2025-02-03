@@ -1,7 +1,9 @@
 package com.example.mymediatest.play.codec
 
 import android.content.Context
+import android.media.MediaCodec
 import android.net.Uri
+import com.example.mymediatest.play.codec.MediaSupport.consume
 import com.example.mymediatest.play.support.AVCodecContext
 import com.example.mymediatest.play.support.AVFormatContext
 import com.example.mymediatest.play.support.AVFrame
@@ -109,5 +111,10 @@ object MediaSupport : AVSupport<MediaSupport> {
     override fun AVFrame<MediaSupport>.consume(consumed: Int) {
         val frame = this as MediaFrame
         frame.offset += consumed
+    }
+
+    override fun AVFrame<MediaSupport>.eos(): Boolean {
+        val frame = this as MediaFrame
+        return (frame.flags and MediaCodec.BUFFER_FLAG_END_OF_STREAM) != 0
     }
 }

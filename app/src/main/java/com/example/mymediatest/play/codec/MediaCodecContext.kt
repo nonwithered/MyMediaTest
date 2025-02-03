@@ -74,6 +74,7 @@ class MediaCodecContext(
             bytes = bytes,
             offset = bufferInfo.offset,
             presentationTimeUs = bufferInfo.presentationTimeUs,
+            flags = bufferInfo.flags,
         )
     }
 }

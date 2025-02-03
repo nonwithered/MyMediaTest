@@ -31,6 +31,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.yield
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicLong
 
 class CodecPlayerHelperController<T : AVSupport<T>>(
@@ -53,6 +54,22 @@ class CodecPlayerHelperController<T : AVSupport<T>>(
         fun onStart()
 
         fun onPause()
+    }
+
+    private object EmptyRenderer : Renderer {
+
+        override fun onRender(bytes: ByteArray, offset: Int): Int {
+            return bytes.size - offset
+        }
+
+        override fun onStart() {
+        }
+
+        override fun onPause() {
+        }
+
+        override fun close() {
+        }
     }
 
     private companion object {
@@ -175,7 +192,7 @@ class CodecPlayerHelperController<T : AVSupport<T>>(
         decodeScope.cancel()
     }
 
-    private fun createRenderer(stream: AVStream<T>): Renderer? {
+    private fun createRenderer(stream: AVStream<T>): Renderer {
         val mime = stream.mime()
         val channelConfig = when (stream.channelCount()) {
             1 -> AudioFormat.CHANNEL_OUT_MONO
@@ -193,8 +210,8 @@ class CodecPlayerHelperController<T : AVSupport<T>>(
                     AudioTrack.MODE_STREAM,
                 )
             )
-            mime.isVideo -> null // TODO
-            else -> null
+            mime.isVideo -> EmptyRenderer // TODO
+            else -> EmptyRenderer
         }
     }
 
@@ -204,15 +221,15 @@ class CodecPlayerHelperController<T : AVSupport<T>>(
                 val bufferChannel = bufferChannels[index]
                 launch {
                     TAG.logD { "performDecode $index launch" }
-                    val lastPtsRef = AtomicLong(Long.MIN_VALUE)
+                    val eosStatRef = AtomicBoolean(false)
                     while (true) {
-                        val eos = performDecode(
+                        val end = performDecode(
                             index = index,
                             stream = stream,
                             bufferChannel = bufferChannel,
-                            lastPtsRef = lastPtsRef,
+                            eosStatRef = eosStatRef,
                         )
-                        if (eos) {
+                        if (end) {
                             break
                         }
                         yield()
@@ -227,11 +244,11 @@ class CodecPlayerHelperController<T : AVSupport<T>>(
         index: Int,
         stream: AVStream<T>,
         bufferChannel: Channel<FrameBuffer<T>>,
-        lastPtsRef: AtomicLong,
+        eosStatRef: AtomicBoolean,
     ): Boolean {
-        var lastPts by lastPtsRef
+        var eosStat by eosStatRef
         val mime = stream.mime()
-        while (true) {
+        while (!eosStat) {
             val packet = formatContext.read(stream)
             val ptsMs = packet?.ptsMs
             TAG.logD { "performDecode $index packet read $mime $ptsMs" }
@@ -240,6 +257,7 @@ class CodecPlayerHelperController<T : AVSupport<T>>(
             }
             val eos = stream.decoder().send(packet)
             if (eos) {
+                eosStat = true
                 TAG.logD { "performDecode $index packet send eos $mime $ptsMs" }
             } else {
                 TAG.logD { "performDecode $index packet send $mime $ptsMs" }
@@ -252,14 +270,13 @@ class CodecPlayerHelperController<T : AVSupport<T>>(
             if (ptsMs === null) {
                 break
             }
-            if (ptsMs < lastPts) {
+            if (frame.eos()) {
                 bufferChannel.send(FrameBuffer(
                     frame = null,
                 ))
                 TAG.logD { "performDecode $index frame eos $mime $ptsMs" }
                 return true
             }
-            lastPts = ptsMs
             bufferChannel.send(FrameBuffer(
                 frame = frame,
             ))
@@ -275,14 +292,14 @@ class CodecPlayerHelperController<T : AVSupport<T>>(
                 launch {
                     TAG.logD { "performPlay $index launch" }
                     bufferChannel.forEach { buffer ->
-                        val eos = performPlay(
+                        val end = performPlay(
                             index = index,
                             buffer = buffer,
                             renderer = renderer,
                             startTimeMs = startTimeMs,
                         )
                         yield()
-                        !eos
+                        !end
                     }
                     TAG.logD { "performPlay $index break" }
                 }
@@ -295,7 +312,7 @@ class CodecPlayerHelperController<T : AVSupport<T>>(
     private suspend fun performPlay(
         index: Int,
         buffer: FrameBuffer<T>,
-        renderer: Renderer?,
+        renderer: Renderer,
         startTimeMs: Long,
     ): Boolean {
         val frame = buffer.frame
@@ -318,7 +335,7 @@ class CodecPlayerHelperController<T : AVSupport<T>>(
             }
             val offset = frame.offset()
             val bytes = frame.bytes()
-            val consumed = renderer?.onRender(bytes, offset) ?: (bytes.size - offset)
+            val consumed = renderer.onRender(bytes, offset)
             TAG.logD { "performPlay $index render consumed $ptsMs $offset ${bytes.size} $consumed" }
             if (offset + consumed >= bytes.size) {
                 if (index == syncStreamIndex) {
