@@ -57,3 +57,25 @@ inline fun String.logA(e: Throwable? = null, crossinline msg: () -> String) = lo
 
 val Any.TAG: String
     get() = javaClass.simpleName
+
+val allStackTracesString: List<String>
+    get() = Thread.getAllStackTraces().map { (thread, stackTraces) ->
+        buildString {
+            val builder = this
+            builder += "Thread: "
+            builder += thread.name
+            builder += ", TID: "
+            builder += thread.id.toString()
+            stackTraces.forEach { stackTrace ->
+                builder += "\nat "
+                builder += stackTrace.className
+                builder += "."
+                builder += stackTrace.methodName
+                builder += "("
+                builder += stackTrace.fileName
+                builder += ":"
+                builder += stackTrace.lineNumber.toString()
+                builder += ")"
+            }
+        }
+    }

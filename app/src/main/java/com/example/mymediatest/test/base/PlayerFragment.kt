@@ -12,14 +12,18 @@ import com.example.mymediatest.R
 import com.example.shared.page.BaseFragment
 import com.example.shared.utils.AutoLauncher
 import com.example.shared.utils.TAG
+import com.example.shared.utils.allStackTracesString
 import com.example.shared.utils.bind
 import com.example.shared.utils.connect
 import com.example.shared.utils.findView
+import com.example.shared.utils.logD
 import com.example.shared.utils.logI
 import com.example.shared.utils.viewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
+import java.io.FileDescriptor
+import java.io.PrintWriter
 
 abstract class PlayerFragment<T : Any> : BaseFragment() {
 
@@ -141,4 +145,19 @@ abstract class PlayerFragment<T : Any> : BaseFragment() {
 
     protected open val currentPosition: Long
         get() = 0
+
+    override fun dump(
+        prefix: String,
+        fd: FileDescriptor?,
+        writer: PrintWriter,
+        args: Array<out String>?,
+    ) {
+        super.dump(prefix, fd, writer, args)
+        TAG.logD { "dump prefix=$prefix args=${args?.toList()}" }
+        when (args?.firstOrNull()) {
+            "allStackTracesString" -> allStackTracesString.forEach {
+                TAG.logI { it }
+            }
+        }
+    }
 }
