@@ -9,7 +9,6 @@ class MediaStream(
     format: MediaFormat,
 ) : AVStream<MediaSupport> {
 
-    @Volatile
     var posUs = -1L
 
     class TrackInfo(

@@ -2,6 +2,7 @@ package com.example.mymediatest.play.codec
 
 import android.content.Context
 import android.media.MediaCodec
+import android.media.MediaExtractor
 import android.net.Uri
 import com.example.mymediatest.play.codec.MediaSupport.consume
 import com.example.mymediatest.play.support.AVCodecContext
@@ -91,6 +92,11 @@ object MediaSupport : AVSupport<MediaSupport> {
     override fun AVPacket<MediaSupport>.pts(): TimeStamp {
         val packet = this as MediaPacket
         return packet.sampleTime to TimeUnit.MICROSECONDS
+    }
+
+    override fun AVPacket<MediaSupport>.breakable(): Boolean {
+        val packet = this as MediaPacket
+        return (packet.sampleFlags and MediaExtractor.SAMPLE_FLAG_PARTIAL_FRAME) == 0
     }
 
     override fun AVFrame<MediaSupport>.pts(): TimeStamp {

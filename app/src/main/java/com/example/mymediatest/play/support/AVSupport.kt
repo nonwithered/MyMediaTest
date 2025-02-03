@@ -37,6 +37,8 @@ interface AVSupport<T : AVSupport<T>> {
 
     fun AVPacket<T>.pts(): TimeStamp
 
+    fun AVPacket<T>.breakable(): Boolean
+
     fun AVFrame<T>.pts(): TimeStamp
 
     fun AVFrame<T>.offset(): Int

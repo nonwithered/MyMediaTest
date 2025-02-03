@@ -262,13 +262,19 @@ class CodecPlayerHelperController<T : AVSupport<T>>(
         var lastPts by lastPtsRef
         var lastTime by lastTimeRef
         val mime = stream.mime()
+        var breakable = true
         while (!eosStat) {
             val packet = formatContext.read(stream)
             val ptsMs = packet?.ptsMs
-            TAG.logD { "performDecode $index packet read $mime $ptsMs" }
+            TAG.logD { "performDecode $index packet read $mime $ptsMs $breakable" }
             if (packet === null) {
-                break
+                if (breakable) {
+                    break
+                } else {
+                    continue
+                }
             }
+            breakable = packet.breakable()
             val eos = stream.decoder().send(packet)
             if (eos) {
                 eosStat = true
