@@ -130,9 +130,12 @@ class CodecPlayerHelperController<T : AVSupport<T>>(
         unit.toMillis(time)
     }
 
-    private val _currentPosition = AtomicLong(0)
+    private val _playPosition = AtomicLong(0)
 
-    override var currentPosition: Long by _currentPosition
+    private var playPosition: Long by _playPosition
+
+    override val currentPosition: Long
+        get() = playPosition.coerceAtLeast(0)
 
     private var decodeTask = decodeScope.launch {
         listener.onPrepared(0 to 0)
@@ -147,7 +150,7 @@ class CodecPlayerHelperController<T : AVSupport<T>>(
         val job = decodeTask
         job.cancel()
         val posMs = pos - TimeUnit.SECONDS.toMillis(SEEK_PREVIOUS_S)
-        currentPosition = posMs
+        playPosition = posMs
         decodeTask = decodeScope.launch {
             job.join()
             formatContext.seek(posMs to TimeUnit.MILLISECONDS)
@@ -168,7 +171,7 @@ class CodecPlayerHelperController<T : AVSupport<T>>(
             renders.forEach {
                 it.onStart()
             }
-            performPlay(elapsedRealtime - currentPosition.coerceIn(0L, duration))
+            performPlay(elapsedRealtime - playPosition.coerceIn(0L, duration))
         }
     }
 
@@ -354,7 +357,7 @@ class CodecPlayerHelperController<T : AVSupport<T>>(
             }
         }
         listener.onCompletion()
-        currentPosition = 0
+        playPosition = 0
     }
 
     private suspend fun performPlay(
@@ -371,7 +374,7 @@ class CodecPlayerHelperController<T : AVSupport<T>>(
         val ptsMs = frame.ptsMs
         TAG.logD { "performPlay $index render frame $ptsMs" }
         while (true) {
-            val currentPosMs = currentPosition
+            val currentPosMs = playPosition
             while (true) {
                 val realPos = elapsedRealtime - startTimeMs
                 if (realPos >= ptsMs) {
@@ -387,7 +390,7 @@ class CodecPlayerHelperController<T : AVSupport<T>>(
             TAG.logD { "performPlay $index render consumed $ptsMs $offset ${bytes.size} $consumed" }
             if (offset + consumed >= bytes.size) {
                 if (index == syncStreamIndex) {
-                    _currentPosition.compareAndSet(currentPosMs, ptsMs)
+                    _playPosition.compareAndSet(currentPosMs, ptsMs)
                 }
                 break
             }
