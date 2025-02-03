@@ -45,17 +45,22 @@ class MediaFormatContext(
         val decoder = stream.decoder
         val (bufferIndex, buffer) = decoder.dequeueInputBuffer() ?: return null
         val (sampleSize, sampleTime, sampleFlags) = extractor.useTrack(streams.indexOf(stream)) {
-            extractor.seekTo(stream.posUs, MediaExtractor.SEEK_TO_NEXT_SYNC)
+            extractor.seekTo(stream.posUs, MediaExtractor.SEEK_TO_PREVIOUS_SYNC)
+            var sampleTime: Long
+            while (true) {
+                sampleTime = extractor.sampleTime
+                if (sampleTime < 0 || sampleTime > stream.posUs) {
+                    break
+                }
+                extractor.advance()
+            }
+            stream.posUs = sampleTime
             val sampleSize = extractor.readSampleData(buffer, 0)
             if (sampleSize < 0) {
-                val result = 0 to 0L cross MediaCodec.BUFFER_FLAG_END_OF_STREAM
                 stream.posUs = Long.MAX_VALUE
-                result
+                0 to 0L cross MediaCodec.BUFFER_FLAG_END_OF_STREAM
             } else {
-                val result = sampleSize to extractor.sampleTime cross extractor.sampleFlags
-                extractor.advance()
-                stream.posUs = extractor.sampleTime
-                result
+                sampleSize to sampleTime cross extractor.sampleFlags
             }
         }
         return MediaPacket(
