@@ -79,8 +79,7 @@ class CodecPlayerHelperController<T : AVSupport<T>>(
         it.start()
     }.asCoroutineScope
 
-    private val streams: List<AVStream<T>>
-        get() = formatContext.streams()
+    private val streams = formatContext.streams()
 
     private val bufferChannels = streams.map {
         Channel<AVFrame<T>?>(
@@ -89,8 +88,12 @@ class CodecPlayerHelperController<T : AVSupport<T>>(
         )
     }
 
-    private val renderes = streams.map {
+    private val renders = streams.map {
         createRenderer(it)
+    }
+
+    private val syncStreamIndex = streams.indexOfFirst {
+        it.mime().isAudio
     }
 
     private var playTask: AutoCloseable? = null
@@ -130,8 +133,10 @@ class CodecPlayerHelperController<T : AVSupport<T>>(
         if (isPlaying) {
             return
         }
-        renderes.forEach { 
-            it?.onStart()
+        playScope.launch {
+            renders.forEach {
+                it?.onStart()
+            }
         }
         playTask = playScope.launch {
             performPlay(elapsedRealtime - currentPosition.coerceIn(0L, duration))
@@ -143,18 +148,22 @@ class CodecPlayerHelperController<T : AVSupport<T>>(
             it.close()
             playTask = null
         }
-        renderes.forEach {
-            it?.onPause()
+        playScope.launch {
+            renders.forEach {
+                it?.onPause()
+            }
         }
     }
 
     override fun close() {
+        playScope.launch {
+            renders.forEach {
+                it?.close()
+            }
+        }
         playScope.cancel()
         decodeScope.cancel()
         formatContext.close()
-        renderes.forEach {
-            it?.close()
-        }
     }
 
     private fun createRenderer(stream: AVStream<T>): Renderer? {
@@ -230,7 +239,7 @@ class CodecPlayerHelperController<T : AVSupport<T>>(
     private suspend fun performPlay(startTimeMs: Long) {
         coroutineScope {
             streams.forEachIndexed { index, _ ->
-                val renderer = renderes[index]
+                val renderer = renders[index]
                 val bufferChannel = bufferChannels[index]
                 launch {
                     TAG.logD { "performPlay $index launch" }
@@ -249,7 +258,6 @@ class CodecPlayerHelperController<T : AVSupport<T>>(
             TAG.logD { "performPlay $index cancel" }
             return false
         }
-        val bytes = buffer.bytes()
         val ptsMs = buffer.ptsMs
         TAG.logD { "performPlay $index receive $ptsMs" }
         while (true) {
@@ -264,11 +272,11 @@ class CodecPlayerHelperController<T : AVSupport<T>>(
                 delay(delayMs)
             }
             val offset = buffer.offset()
+            val bytes = buffer.bytes()
             val consumed = renderer?.onRender(bytes, offset) ?: (bytes.size - offset)
-            TAG.logD { "performPlay $index onRender $ptsMs" }
-            TAG.logD { "performPlay $index consume $offset ${bytes.size} $consumed" }
+            TAG.logD { "performPlay $index onRender $ptsMs $offset ${bytes.size} consumed $consumed" }
             if (offset + consumed >= bytes.size) {
-                if (renderer is AudioRender) {
+                if (index == syncStreamIndex) {
                     _currentPosition.compareAndSet(currentPosMs, ptsMs)
                 }
                 break
