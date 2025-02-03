@@ -24,6 +24,10 @@ class MediaCodecContext(
         codec.release()
     }
 
+    fun flush() {
+        codec.flush()
+    }
+
     fun dequeueInputBuffer(): Tuple2<Int, ByteBuffer>? {
         val bufferIndex = codec.dequeueInputBuffer(0)
         if (bufferIndex < 0) {

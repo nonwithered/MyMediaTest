@@ -39,6 +39,7 @@ class MediaFormatContext(
         streams.forEach {
             it.posUs = unit.toMicros(time)
             it.needSeek = true
+            it.decoder.flush()
         }
     }
 

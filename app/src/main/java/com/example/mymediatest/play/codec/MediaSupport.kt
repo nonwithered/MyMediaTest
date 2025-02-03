@@ -4,7 +4,6 @@ import android.content.Context
 import android.media.MediaCodec
 import android.media.MediaExtractor
 import android.net.Uri
-import com.example.mymediatest.play.codec.MediaSupport.consume
 import com.example.mymediatest.play.support.AVCodecContext
 import com.example.mymediatest.play.support.AVFormatContext
 import com.example.mymediatest.play.support.AVFrame

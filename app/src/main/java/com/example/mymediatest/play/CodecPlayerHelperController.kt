@@ -24,6 +24,7 @@ import com.example.shared.utils.getValue
 import com.example.shared.utils.logD
 import com.example.shared.utils.onDispose
 import com.example.shared.utils.setValue
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.channels.Channel
@@ -119,7 +120,8 @@ class CodecPlayerHelperController<T : AVSupport<T>>(
         it.mime().isAudio
     }
 
-    private var playTask: AutoCloseable? = null
+    private var playTask: Job? = null
+    private var playCancelTask: Job? = null
 
     override val isPlaying: Boolean
         get() = playTask !== null
@@ -143,13 +145,14 @@ class CodecPlayerHelperController<T : AVSupport<T>>(
         get() = SystemClock.elapsedRealtime()
 
     override fun seekTo(pos: Long) {
-        decodeTask.cancel()
+        TAG.logD { "seekTo $pos" }
+        val job = decodeTask
+        job.cancel()
         val posMs = pos - TimeUnit.SECONDS.toMillis(SEEK_PREVIOUS_S)
         currentPosition = posMs
-        decodeScope.launch {
-            formatContext.seek(posMs to TimeUnit.MILLISECONDS)
-        }
         decodeTask = decodeScope.launch {
+            job.join()
+            formatContext.seek(posMs to TimeUnit.MILLISECONDS)
             performDecode()
         }
     }
@@ -158,22 +161,29 @@ class CodecPlayerHelperController<T : AVSupport<T>>(
         if (isPlaying) {
             return
         }
-        playScope.launch {
+        TAG.logD { "start" }
+        val job = playCancelTask
+        playCancelTask = null
+        job?.cancel()
+        playTask = playScope.launch {
+            job?.join()
             renders.forEach {
                 it.onStart()
             }
-        }
-        playTask = playScope.launch {
             performPlay(elapsedRealtime - currentPosition.coerceIn(0L, duration))
-        }::dispose.asCloseable
+        }
     }
 
     override fun pause() {
-        playTask?.let {
-            it.close()
-            playTask = null
+        if (!isPlaying) {
+            return
         }
-        playScope.launch {
+        TAG.logD { "pause" }
+        val job = playTask
+        playTask = null
+        job?.cancel()
+        playCancelTask = playScope.launch {
+            job?.join()
             renders.forEach {
                 it.onPause()
             }
