@@ -35,7 +35,7 @@ class Test004CodecPlayer: CommonPlayerFragment<Test004CodecPlayer.Params, BasePl
             MediaSupport,
         ),
 
-        Temp(
+        TEMP(
             MediaSupport,
         ),
     }
@@ -62,7 +62,7 @@ class Test004CodecPlayer: CommonPlayerFragment<Test004CodecPlayer.Params, BasePl
     override val factory = CommonPlayerHelper.Factory { context, uri, surface, listener ->
         when (params.codecType) {
             CodecType.MEDIA -> CodecPlayerHelperController(context, uri, surface, listener, params.codecType.support)
-            CodecType.Temp -> MediaCodecPlayerHelperFactory(context, uri, surface, listener)
+            CodecType.TEMP -> MediaCodecPlayerHelperFactory(context, uri, surface, listener)
         }
     }
 }
