@@ -1,6 +1,7 @@
 package com.example.mymediatest.play.codec
 
 import android.content.Context
+import android.media.MediaCodec
 import android.media.MediaExtractor
 import android.net.Uri
 import com.example.mymediatest.play.support.AVFormatContext
@@ -46,14 +47,16 @@ class MediaFormatContext(
         val (sampleSize, sampleTime, sampleFlags) = extractor.useTrack(streams.indexOf(stream)) {
             extractor.seekTo(stream.posUs, MediaExtractor.SEEK_TO_NEXT_SYNC)
             val sampleSize = extractor.readSampleData(buffer, 0)
-            val result = sampleSize to extractor.sampleTime cross extractor.sampleFlags
             if (sampleSize < 0) {
+                val result = 0 to 0L cross MediaCodec.BUFFER_FLAG_END_OF_STREAM
                 stream.posUs = Long.MAX_VALUE
+                result
             } else {
+                val result = sampleSize to extractor.sampleTime cross extractor.sampleFlags
                 extractor.advance()
                 stream.posUs = extractor.sampleTime
+                result
             }
-            result
         }
         return MediaPacket(
             bufferIndex = bufferIndex,

@@ -44,25 +44,14 @@ class MediaCodecContext(
     }
 
     fun send(packet: MediaPacket): Boolean {
-        if (packet.sampleSize < 0) {
-            codec.queueInputBuffer(
-                packet.bufferIndex,
-                0,
-                0,
-                0,
-                MediaCodec.BUFFER_FLAG_END_OF_STREAM,
-            )
-            return true
-        } else {
-            codec.queueInputBuffer(
-                packet.bufferIndex,
-                0,
-                packet.sampleSize,
-                packet.sampleTime,
-                packet.sampleFlags,
-            )
-            return false
-        }
+        codec.queueInputBuffer(
+            packet.bufferIndex,
+            0,
+            packet.sampleSize,
+            packet.sampleTime,
+            packet.sampleFlags,
+        )
+        return (packet.sampleFlags and MediaCodec.BUFFER_FLAG_END_OF_STREAM) != 0
     }
 
     fun receive(): MediaFrame? {

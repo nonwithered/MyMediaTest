@@ -24,7 +24,11 @@ val mainScope: CoroutineScope by lazy {
 
 val Handler.asExecutor: Executor
     get() = Executor { r ->
-        post(r)
+        runCatching {
+            post(r)
+        }.onFailure { e ->
+            TAG.logW(e) { "post $r" }
+        }
     }
 
 private val HandlerThread.asCoroutineContext: CoroutineContext

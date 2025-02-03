@@ -22,6 +22,7 @@ import com.example.shared.utils.dispose
 import com.example.shared.utils.forEach
 import com.example.shared.utils.getValue
 import com.example.shared.utils.logD
+import com.example.shared.utils.onDispose
 import com.example.shared.utils.setValue
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.channels.BufferOverflow
@@ -220,14 +221,23 @@ class CodecPlayerHelperController<T : AVSupport<T>>(
             streams.forEachIndexed { index, stream ->
                 val bufferChannel = bufferChannels[index]
                 launch {
+                    launch {
+                        onDispose {
+                            TAG.logD { "performDecode $index onDispose" }
+                        }
+                    }
                     TAG.logD { "performDecode $index launch" }
                     val eosStatRef = AtomicBoolean(false)
+                    val lastPtsRef = AtomicLong(Long.MIN_VALUE)
+                    val lastTimeRef = AtomicLong(Long.MIN_VALUE)
                     while (true) {
                         val end = performDecode(
                             index = index,
                             stream = stream,
                             bufferChannel = bufferChannel,
                             eosStatRef = eosStatRef,
+                            lastPtsRef = lastPtsRef,
+                            lastTimeRef = lastTimeRef,
                         )
                         if (end) {
                             break
@@ -245,8 +255,12 @@ class CodecPlayerHelperController<T : AVSupport<T>>(
         stream: AVStream<T>,
         bufferChannel: Channel<FrameBuffer<T>>,
         eosStatRef: AtomicBoolean,
+        lastPtsRef: AtomicLong,
+        lastTimeRef: AtomicLong,
     ): Boolean {
         var eosStat by eosStatRef
+        var lastPts by lastPtsRef
+        var lastTime by lastTimeRef
         val mime = stream.mime()
         while (!eosStat) {
             val packet = formatContext.read(stream)
@@ -264,19 +278,27 @@ class CodecPlayerHelperController<T : AVSupport<T>>(
             }
         }
         while (true) {
+            val curTime = elapsedRealtime
             val frame = stream.decoder().receive()
             val ptsMs = frame?.ptsMs
             TAG.logD { "performDecode $index frame receive $mime $ptsMs" }
-            if (ptsMs === null) {
-                break
+            val eos = if (ptsMs === null) {
+                eosStat && lastTime != Long.MIN_VALUE && lastTime + 100 < curTime
+            } else {
+                frame.eos() || ptsMs <= lastPts
             }
-            if (frame.eos()) {
+            if (eos) {
                 bufferChannel.send(FrameBuffer(
                     frame = null,
                 ))
                 TAG.logD { "performDecode $index frame eos $mime $ptsMs" }
                 return true
             }
+            if (ptsMs === null) {
+                break
+            }
+            lastPts = ptsMs
+            lastTime = curTime
             bufferChannel.send(FrameBuffer(
                 frame = frame,
             ))
@@ -290,6 +312,11 @@ class CodecPlayerHelperController<T : AVSupport<T>>(
                 val renderer = renders[index]
                 val bufferChannel = bufferChannels[index]
                 launch {
+                    launch {
+                        onDispose {
+                            TAG.logD { "performPlay $index onDispose" }
+                        }
+                    }
                     TAG.logD { "performPlay $index launch" }
                     bufferChannel.forEach { buffer ->
                         val end = performPlay(
