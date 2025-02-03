@@ -217,6 +217,7 @@ class CodecPlayerHelperController<T : AVSupport<T>>(
                         }
                         yield()
                     }
+                    TAG.logD { "performDecode $index break" }
                 }
             }
         }
@@ -232,28 +233,30 @@ class CodecPlayerHelperController<T : AVSupport<T>>(
         val mime = stream.mime()
         while (true) {
             val packet = formatContext.read(stream)
-            TAG.logD { "performDecode packet read $index $mime ${packet?.ptsMs}" }
+            val ptsMs = packet?.ptsMs
+            TAG.logD { "performDecode $index packet read $mime $ptsMs" }
             if (packet === null) {
                 break
             }
             val eos = stream.decoder().send(packet)
             if (eos) {
-                TAG.logD { "performDecode packet send eos $index $mime" }
+                TAG.logD { "performDecode $index packet send eos $mime $ptsMs" }
             } else {
-                TAG.logD { "performDecode packet send $index $mime" }
+                TAG.logD { "performDecode $index packet send $mime $ptsMs" }
             }
         }
         while (true) {
             val frame = stream.decoder().receive()
-            TAG.logD { "performDecode frame receive $index $mime ${frame?.ptsMs}" }
-            if (frame === null) {
+            val ptsMs = frame?.ptsMs
+            TAG.logD { "performDecode $index frame receive $mime $ptsMs" }
+            if (ptsMs === null) {
                 break
             }
-            val ptsMs = frame.ptsMs
             if (ptsMs < lastPts) {
                 bufferChannel.send(FrameBuffer(
                     frame = null,
                 ))
+                TAG.logD { "performDecode $index frame eos $mime $ptsMs" }
                 return true
             }
             lastPts = ptsMs
@@ -270,7 +273,7 @@ class CodecPlayerHelperController<T : AVSupport<T>>(
                 val renderer = renders[index]
                 val bufferChannel = bufferChannels[index]
                 launch {
-                    TAG.logD { "performPlay launch $index" }
+                    TAG.logD { "performPlay $index launch" }
                     bufferChannel.forEach { buffer ->
                         val eos = performPlay(
                             index = index,
@@ -281,6 +284,7 @@ class CodecPlayerHelperController<T : AVSupport<T>>(
                         yield()
                         !eos
                     }
+                    TAG.logD { "performPlay $index break" }
                 }
             }
         }
@@ -296,11 +300,11 @@ class CodecPlayerHelperController<T : AVSupport<T>>(
     ): Boolean {
         val frame = buffer.frame
         if (frame === null) {
-            TAG.logD { "performPlay render eos $index" }
+            TAG.logD { "performPlay $index render eos" }
             return true
         }
         val ptsMs = frame.ptsMs
-        TAG.logD { "performPlay render frame $index $ptsMs" }
+        TAG.logD { "performPlay $index render frame $ptsMs" }
         while (true) {
             val currentPosMs = currentPosition
             while (true) {
@@ -309,13 +313,13 @@ class CodecPlayerHelperController<T : AVSupport<T>>(
                     break
                 }
                 val delayMs = ptsMs - realPos
-                TAG.logD { "performPlay render delay $index $delayMs" }
+                TAG.logD { "performPlay $index render delay $delayMs" }
                 delay(delayMs)
             }
             val offset = frame.offset()
             val bytes = frame.bytes()
             val consumed = renderer?.onRender(bytes, offset) ?: (bytes.size - offset)
-            TAG.logD { "performPlay render consumed $index $ptsMs $offset ${bytes.size} $consumed" }
+            TAG.logD { "performPlay $index render consumed $ptsMs $offset ${bytes.size} $consumed" }
             if (offset + consumed >= bytes.size) {
                 if (index == syncStreamIndex) {
                     _currentPosition.compareAndSet(currentPosMs, ptsMs)
