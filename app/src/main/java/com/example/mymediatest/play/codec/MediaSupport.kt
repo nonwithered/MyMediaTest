@@ -2,7 +2,6 @@ package com.example.mymediatest.play.codec
 
 import android.content.Context
 import android.net.Uri
-import com.example.mymediatest.play.codec.MediaSupport.pos
 import com.example.mymediatest.play.support.AVCodecContext
 import com.example.mymediatest.play.support.AVFormatContext
 import com.example.mymediatest.play.support.AVFrame
@@ -76,10 +75,10 @@ object MediaSupport : AVSupport<MediaSupport> {
         return formatContext.read(stream)
     }
 
-    override fun AVCodecContext<MediaSupport>.send(packet: AVPacket<MediaSupport>) {
+    override fun AVCodecContext<MediaSupport>.send(packet: AVPacket<MediaSupport>): Boolean {
         val codecContext = this as MediaCodecContext
         packet as MediaPacket
-        codecContext.send(packet)
+        return codecContext.send(packet)
     }
 
     override fun AVCodecContext<MediaSupport>.receive(): AVFrame<MediaSupport>? {
@@ -87,9 +86,9 @@ object MediaSupport : AVSupport<MediaSupport> {
         return codecContext.receive()
     }
 
-    override fun AVPacket<MediaSupport>.eos(): Boolean {
+    override fun AVPacket<MediaSupport>.pts(): TimeStamp {
         val packet = this as MediaPacket
-        return packet.sampleSize < 0
+        return packet.sampleTime to TimeUnit.MICROSECONDS
     }
 
     override fun AVFrame<MediaSupport>.pts(): TimeStamp {

@@ -207,27 +207,25 @@ class CodecPlayerHelperController<T : AVSupport<T>>(
 
     private suspend fun performDecode(stream: AVStream<T>, bufferChannel: Channel<AVFrame<T>?>, index: Int): Boolean {
         val mime = stream.mime()
-        val list = mutableListOf<AVPacket<T>>()
         while (true) {
             val packet = formatContext.read(stream)
+            TAG.logD { "performDecode $index $mime read ${packet?.ptsMs}" }
             if (packet === null) {
                 break
             }
-            TAG.logD { "performDecode $index $mime read" }
-            list += packet
-            if (packet.eos()) {
+            val eos = stream.decoder().send(packet)
+            if (eos) {
                 TAG.logD { "performDecode $index $mime eos" }
-                break
+            } else {
+                TAG.logD { "performDecode $index $mime send" }
             }
-            stream.decoder().send(packet)
-            TAG.logD { "performDecode $index $mime send" }
         }
         while (true) {
             val buffer = stream.decoder().receive()
+            TAG.logD { "performDecode $index $mime receive ${buffer?.ptsMs}" }
             if (buffer === null) {
                 break
             }
-            TAG.logD { "performDecode $index $mime receive" }
             bufferChannel.send(buffer)
             if (buffer.ptsMs >= duration) {
                 bufferChannel.send(null)
@@ -286,6 +284,12 @@ class CodecPlayerHelperController<T : AVSupport<T>>(
         }
         return true
     }
+
+    private val AVPacket<T>.ptsMs: Long
+        get() {
+            val (time, unit) = pts()
+            return unit.toMillis(time)
+        }
 
     private val AVFrame<T>.ptsMs: Long
         get() {

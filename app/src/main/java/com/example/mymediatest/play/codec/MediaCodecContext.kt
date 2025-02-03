@@ -6,7 +6,6 @@ import com.example.mymediatest.play.support.AVCodecContext
 import com.example.shared.utils.Tuple2
 import com.example.shared.utils.Tuple3
 import com.example.shared.utils.cross
-import kotlinx.coroutines.yield
 import java.nio.ByteBuffer
 
 class MediaCodecContext(
@@ -44,24 +43,26 @@ class MediaCodecContext(
         return bufferIndex to buffer cross bufferInfo
     }
 
-    fun eos(bufferIndex: Int) {
-        codec.queueInputBuffer(
-            bufferIndex,
-            0,
-            0,
-            0,
-            MediaCodec.BUFFER_FLAG_END_OF_STREAM,
-        )
-    }
-
-    fun send(packet: MediaPacket) {
-        codec.queueInputBuffer(
-            packet.bufferIndex,
-            0,
-            packet.sampleSize,
-            packet.sampleTime,
-            packet.sampleFlags,
-        )
+    fun send(packet: MediaPacket): Boolean {
+        if (packet.sampleSize < 0) {
+            codec.queueInputBuffer(
+                packet.bufferIndex,
+                0,
+                0,
+                0,
+                MediaCodec.BUFFER_FLAG_END_OF_STREAM,
+            )
+            return true
+        } else {
+            codec.queueInputBuffer(
+                packet.bufferIndex,
+                0,
+                packet.sampleSize,
+                packet.sampleTime,
+                packet.sampleFlags,
+            )
+            return false
+        }
     }
 
     fun receive(): MediaFrame? {

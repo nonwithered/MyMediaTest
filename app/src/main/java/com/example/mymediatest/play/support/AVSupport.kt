@@ -31,11 +31,11 @@ interface AVSupport<T : AVSupport<T>> {
 
     fun AVFormatContext<T>.read(stream: AVStream<T>): AVPacket<T>?
 
-    fun AVCodecContext<T>.send(packet: AVPacket<T>)
+    fun AVCodecContext<T>.send(packet: AVPacket<T>): Boolean
 
     fun AVCodecContext<T>.receive(): AVFrame<T>?
 
-    fun AVPacket<T>.eos(): Boolean
+    fun AVPacket<T>.pts(): TimeStamp
 
     fun AVFrame<T>.pts(): TimeStamp
 
