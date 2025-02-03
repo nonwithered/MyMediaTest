@@ -80,6 +80,9 @@ class CaseSelectActivity : BaseActivity() {
         }
     }
 
+    /**
+     * adb shell dumpsys activity com.example.mymediatest/com.example.mymediatest.select.CaseSelectActivity allStackTracesString
+     */
     override fun dump(
         prefix: String,
         fd: FileDescriptor?,

@@ -16,9 +16,7 @@ import com.example.mymediatest.play.support.AVSupport
 import com.example.mymediatest.utils.isAudio
 import com.example.mymediatest.utils.isVideo
 import com.example.shared.utils.TAG
-import com.example.shared.utils.asCloseable
 import com.example.shared.utils.asCoroutineScope
-import com.example.shared.utils.dispose
 import com.example.shared.utils.forEach
 import com.example.shared.utils.getValue
 import com.example.shared.utils.logD
@@ -231,13 +229,13 @@ class CodecPlayerHelperController<T : AVSupport<T>>(
             streams.forEachIndexed { index, stream ->
                 val bufferChannel = bufferChannels[index]
                 launch {
-                    launch {
+                    val monitor = launch {
                         onDispose {
                             TAG.logD { "performDecode $index onDispose" }
                         }
                     }
                     TAG.logD { "performDecode $index launch" }
-                    val eosStatRef = AtomicBoolean(false)
+                    val eosStateRef = AtomicBoolean(false)
                     val lastPtsRef = AtomicLong(Long.MIN_VALUE)
                     val lastTimeRef = AtomicLong(Long.MIN_VALUE)
                     while (true) {
@@ -245,7 +243,7 @@ class CodecPlayerHelperController<T : AVSupport<T>>(
                             index = index,
                             stream = stream,
                             bufferChannel = bufferChannel,
-                            eosStatRef = eosStatRef,
+                            eosStateRef = eosStateRef,
                             lastPtsRef = lastPtsRef,
                             lastTimeRef = lastTimeRef,
                         )
@@ -255,6 +253,7 @@ class CodecPlayerHelperController<T : AVSupport<T>>(
                         yield()
                     }
                     TAG.logD { "performDecode $index break" }
+                    monitor.cancel()
                 }
             }
         }
@@ -264,16 +263,16 @@ class CodecPlayerHelperController<T : AVSupport<T>>(
         index: Int,
         stream: AVStream<T>,
         bufferChannel: Channel<FrameBuffer<T>>,
-        eosStatRef: AtomicBoolean,
+        eosStateRef: AtomicBoolean,
         lastPtsRef: AtomicLong,
         lastTimeRef: AtomicLong,
     ): Boolean {
-        var eosStat by eosStatRef
+        var eosState by eosStateRef
         var lastPts by lastPtsRef
         var lastTime by lastTimeRef
         val mime = stream.mime()
         var breakable = true
-        while (!eosStat) {
+        while (!eosState) {
             val packet = formatContext.read(stream)
             val ptsMs = packet?.ptsMs
             TAG.logD { "performDecode $index packet read $mime $ptsMs $breakable" }
@@ -287,7 +286,7 @@ class CodecPlayerHelperController<T : AVSupport<T>>(
             breakable = packet.breakable()
             val eos = stream.decoder().send(packet)
             if (eos) {
-                eosStat = true
+                eosState = true
                 TAG.logD { "performDecode $index packet send eos $mime $ptsMs" }
             } else {
                 TAG.logD { "performDecode $index packet send $mime $ptsMs" }
@@ -297,9 +296,9 @@ class CodecPlayerHelperController<T : AVSupport<T>>(
             val curTime = elapsedRealtime
             val frame = stream.decoder().receive()
             val ptsMs = frame?.ptsMs
-            TAG.logD { "performDecode $index frame receive $mime $ptsMs $eosStat $lastTime $curTime" }
+            TAG.logD { "performDecode $index frame receive $mime $ptsMs $eosState $lastTime $curTime" }
             val eos = if (ptsMs === null) {
-                eosStat && lastTime != Long.MIN_VALUE && lastTime + 100 < curTime
+                eosState && lastTime != Long.MIN_VALUE && lastTime + 100 < curTime
             } else {
                 frame.eos() || ptsMs <= lastPts
             }
@@ -328,13 +327,18 @@ class CodecPlayerHelperController<T : AVSupport<T>>(
                 val renderer = renders[index]
                 val bufferChannel = bufferChannels[index]
                 launch {
-                    launch {
+                    val monitor = launch {
                         onDispose {
                             TAG.logD { "performPlay $index onDispose" }
                         }
                     }
                     TAG.logD { "performPlay $index launch" }
+                    var startState = true
                     bufferChannel.forEach { buffer ->
+                        if (startState && buffer.frame === null) {
+                            return@forEach true
+                        }
+                        startState = false
                         val end = performPlay(
                             index = index,
                             buffer = buffer,
@@ -345,6 +349,7 @@ class CodecPlayerHelperController<T : AVSupport<T>>(
                         !end
                     }
                     TAG.logD { "performPlay $index break" }
+                    monitor.cancel()
                 }
             }
         }
