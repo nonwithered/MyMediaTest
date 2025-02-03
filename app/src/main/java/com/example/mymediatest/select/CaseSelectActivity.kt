@@ -10,8 +10,14 @@ import com.example.mymediatest.R
 import com.example.shared.list.BaseViewAdapter
 import com.example.shared.list.BaseViewHolder
 import com.example.shared.page.BaseActivity
+import com.example.shared.utils.TAG
+import com.example.shared.utils.allStackTracesString
 import com.example.shared.utils.cross
 import com.example.shared.utils.findView
+import com.example.shared.utils.logD
+import com.example.shared.utils.logI
+import java.io.FileDescriptor
+import java.io.PrintWriter
 import kotlin.reflect.KClass
 
 class CaseSelectActivity : BaseActivity() {
@@ -70,6 +76,21 @@ class CaseSelectActivity : BaseActivity() {
                 pageData.builderClass = item.builderClass?.java
                 pageData.paramsExtras = item.paramsExtras
                 CasePageActivity.start(context, pageData)
+            }
+        }
+    }
+
+    override fun dump(
+        prefix: String,
+        fd: FileDescriptor?,
+        writer: PrintWriter,
+        args: Array<out String>?,
+    ) {
+        super.dump(prefix, fd, writer, args)
+        TAG.logD { "dump prefix=$prefix args=${args?.toList()}" }
+        when (args?.firstOrNull()) {
+            "allStackTracesString" -> allStackTracesString.forEach {
+                TAG.logI { it }
             }
         }
     }
