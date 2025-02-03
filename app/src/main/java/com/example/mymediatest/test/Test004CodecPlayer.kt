@@ -4,7 +4,6 @@ import android.os.Bundle
 import androidx.annotation.LayoutRes
 import com.example.mymediatest.R
 import com.example.mymediatest.play.CodecPlayerHelperController
-import com.example.mymediatest.play.MediaCodecPlayerHelperFactory
 import com.example.mymediatest.play.base.BasePlayerHelper
 import com.example.mymediatest.play.base.CommonPlayerHelper
 import com.example.mymediatest.play.codec.MediaSupport
@@ -34,10 +33,6 @@ class Test004CodecPlayer: CommonPlayerFragment<Test004CodecPlayer.Params, BasePl
         MEDIA(
             MediaSupport,
         ),
-
-        TEMP(
-            MediaSupport,
-        ),
     }
 
     class Params(
@@ -62,7 +57,6 @@ class Test004CodecPlayer: CommonPlayerFragment<Test004CodecPlayer.Params, BasePl
     override val factory = CommonPlayerHelper.Factory { context, uri, surface, listener ->
         when (params.codecType) {
             CodecType.MEDIA -> CodecPlayerHelperController(context, uri, surface, listener, params.codecType.support)
-            CodecType.TEMP -> MediaCodecPlayerHelperFactory(context, uri, surface, listener)
         }
     }
 }

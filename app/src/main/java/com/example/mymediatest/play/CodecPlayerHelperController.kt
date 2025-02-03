@@ -160,7 +160,7 @@ class CodecPlayerHelperController<T : AVSupport<T>>(
         }
         playScope.launch {
             renders.forEach {
-                it?.onStart()
+                it.onStart()
             }
         }
         playTask = playScope.launch {
@@ -175,7 +175,7 @@ class CodecPlayerHelperController<T : AVSupport<T>>(
         }
         playScope.launch {
             renders.forEach {
-                it?.onPause()
+                it.onPause()
             }
         }
     }
@@ -183,7 +183,7 @@ class CodecPlayerHelperController<T : AVSupport<T>>(
     override fun close() {
         playScope.launch {
             renders.forEach {
-                it?.close()
+                it.close()
             }
         }
         playScope.cancel()
