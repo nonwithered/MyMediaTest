@@ -29,6 +29,7 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.yield
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicLong
 
@@ -162,8 +163,10 @@ class CodecPlayerHelperController<T : AVSupport<T>>(
             }
         }
         playScope.cancel()
+        decodeScope.launch {
+            formatContext.close()
+        }
         decodeScope.cancel()
-        formatContext.close()
     }
 
     private fun createRenderer(stream: AVStream<T>): Renderer? {
@@ -199,6 +202,7 @@ class CodecPlayerHelperController<T : AVSupport<T>>(
                         if (!performDecode(stream, bufferChannel, index)) {
                             break
                         }
+                        yield()
                     }
                 }
             }
@@ -243,7 +247,9 @@ class CodecPlayerHelperController<T : AVSupport<T>>(
                 launch {
                     TAG.logD { "performPlay $index launch" }
                     bufferChannel.forEach {
-                        performPlay(renderer, it, startTimeMs, index)
+                        performPlay(renderer, it, startTimeMs, index).also {
+                            yield()
+                        }
                     }
                 }
             }
