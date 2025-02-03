@@ -10,13 +10,13 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.suspendCancellableCoroutine
 import java.util.concurrent.Executor
 import java.util.concurrent.locks.Lock
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
 import kotlin.coroutines.CoroutineContext
 import kotlin.coroutines.EmptyCoroutineContext
-import kotlin.coroutines.suspendCoroutine
 
 val mainScope: CoroutineScope by lazy {
     CoroutineScope(SupervisorJob() + Dispatchers.Main)
@@ -87,7 +87,7 @@ fun <T : Any, R> CoroutineScope.capture(ref: T, block: CaptureCoroutineScope<T>.
 
 suspend fun onDispose(block: () -> Unit): Nothing {
     try {
-        suspendCoroutine<Nothing> {
+        suspendCancellableCoroutine<Nothing> {
         }
     } finally {
         block()
