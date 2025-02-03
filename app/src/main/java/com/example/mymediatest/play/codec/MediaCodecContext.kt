@@ -30,7 +30,8 @@ class MediaCodecContext(
         if (bufferIndex < 0) {
             return null
         }
-        return bufferIndex to codec.getInputBuffer(bufferIndex)!!
+        val buffer = codec.getInputBuffer(bufferIndex) ?: return null
+        return bufferIndex to buffer
     }
 
     private fun dequeueOutputBuffer(): Tuple3<Int, ByteBuffer, MediaCodec.BufferInfo>? {
@@ -39,7 +40,8 @@ class MediaCodecContext(
         if (bufferIndex < 0) {
             return null
         }
-        return bufferIndex to codec.getOutputBuffer(bufferIndex)!! cross bufferInfo
+        val buffer = codec.getOutputBuffer(bufferIndex) ?: return null
+        return bufferIndex to buffer cross bufferInfo
     }
 
     fun eos(bufferIndex: Int) {

@@ -216,6 +216,7 @@ class CodecPlayerHelperController<T : AVSupport<T>>(
             TAG.logD { "performDecode $index $mime read" }
             list += packet
             if (packet.eos()) {
+                TAG.logD { "performDecode $index $mime eos" }
                 break
             }
             stream.decoder().send(packet)
