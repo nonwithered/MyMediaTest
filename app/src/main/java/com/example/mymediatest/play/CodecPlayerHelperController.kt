@@ -39,35 +39,39 @@ import java.nio.FloatBuffer
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicLong
-import javax.microedition.khronos.opengles.GL10
 
 class CodecPlayerHelperController<T : AVSupport<T>>(
     params: Params,
-    support: AVSupport<T>,
+    private val support: AVSupport<T>,
 ) : CommonPlayerHelper.Controller(
     params = params,
 ), AVSupport<T> by support {
 
-    private interface Renderer : AutoCloseable {
+    private abstract class Renderer<T : AVSupport<T>>(
+        support: T,
+    ) : AutoCloseable, AVSupport<T> by support {
 
-        fun onRender(
-            bytes: ByteArray,
-            offset: Int,
-            textureItem: TextureItem?,
+        abstract fun onRender(
+            buffer: FrameBuffer<T>,
         ): Int
 
-        fun onStart()
+        abstract fun onStart()
 
-        fun onPause()
+        abstract fun onPause()
     }
 
-    private object EmptyRenderer : Renderer {
+    private class EmptyRenderer<T : AVSupport<T>>(
+        support: T,
+    ) : Renderer<T>(
+        support = support,
+    ) {
 
         override fun onRender(
-            bytes: ByteArray,
-            offset: Int,
-            textureItem: TextureItem?,
+            buffer: FrameBuffer<T>,
         ): Int {
+            val frame = buffer.frame ?: return 0
+            val bytes = frame.bytes()
+            val offset = frame.offset()
             return bytes.size - offset
         }
 
@@ -269,15 +273,18 @@ class CodecPlayerHelperController<T : AVSupport<T>>(
         }
     }
 
-    private fun createRenderer(stream: AVStream<T>): Renderer {
+    private fun createRenderer(stream: AVStream<T>): Renderer<T> {
         val mime = stream.mime()
         val channelConfig = when (stream.channelCount()) {
             1 -> AudioFormat.CHANNEL_OUT_MONO
             else -> AudioFormat.CHANNEL_OUT_STEREO
         }
         val audioFormat = stream.pcmEncoding() ?: AudioFormat.ENCODING_PCM_16BIT
+        @Suppress("UNCHECKED_CAST")
+        val support = support as T
         return when {
             mime.isAudio -> AudioRender(
+                support = support,
                 audioTrack = AudioTrack(
                     AudioManager.STREAM_MUSIC,
                     stream.sampleRate()!!,
@@ -287,8 +294,13 @@ class CodecPlayerHelperController<T : AVSupport<T>>(
                     AudioTrack.MODE_STREAM,
                 )
             )
-            mime.isVideo -> VideoRender(textureCache)
-            else -> EmptyRenderer
+            mime.isVideo -> VideoRender(
+                support = support,
+                textureCache = textureCache,
+            )
+            else -> EmptyRenderer(
+                support = support,
+            )
         }
     }
 
@@ -476,7 +488,7 @@ class CodecPlayerHelperController<T : AVSupport<T>>(
     private suspend fun performPlay(
         index: Int,
         buffer: FrameBuffer<T>,
-        renderer: Renderer,
+        renderer: Renderer<T>,
         startTimeMs: Long,
     ): Boolean {
         val frame = buffer.frame
@@ -499,7 +511,7 @@ class CodecPlayerHelperController<T : AVSupport<T>>(
             }
             val offset = frame.offset()
             val bytes = frame.bytes()
-            val consumed = renderer.onRender(bytes, offset, buffer.textureItem)
+            val consumed = renderer.onRender(buffer)
             TAG.logD { "performPlay $index render consumed $ptsMs $offset ${bytes.size} $consumed" }
             if (offset + consumed >= bytes.size) {
                 if (index == syncStreamIndex) {
@@ -524,15 +536,19 @@ class CodecPlayerHelperController<T : AVSupport<T>>(
             return unit.toMillis(time)
         }
 
-    private class AudioRender(
+    private class AudioRender<T : AVSupport<T>>(
+        support: T,
         private val audioTrack: AudioTrack,
-    ): Renderer {
+    ): Renderer<T>(
+        support = support,
+    ) {
 
         override fun onRender(
-            bytes: ByteArray,
-            offset: Int,
-            textureItem: TextureItem?,
+            buffer: FrameBuffer<T>,
         ): Int {
+            val frame = buffer.frame ?: return 0
+            val bytes = frame.bytes()
+            val offset = frame.offset()
             return audioTrack.write(bytes, offset, bytes.size - offset)
         }
 
@@ -550,9 +566,12 @@ class CodecPlayerHelperController<T : AVSupport<T>>(
         }
     }
 
-    private class VideoRender(
+    private class VideoRender<T : AVSupport<T>>(
+        support: T,
         private val textureCache: Channel<TextureItem>,
-    ) : Renderer {
+    ) : Renderer<T>(
+        support = support,
+    ) {
 
         private val vertexCoods = nativeOrderFloatBuffer(
             -1f, -1f,
@@ -624,11 +643,12 @@ void main() {
         }
 
         override fun onRender(
-            bytes: ByteArray,
-            offset: Int,
-            textureItem: TextureItem?,
+            buffer: FrameBuffer<T>,
         ): Int {
-            updateTextureItem(textureItem)
+            val frame = buffer.frame ?: return 0
+            val bytes = frame.bytes()
+            val offset = frame.offset()
+            updateTextureItem(buffer.textureItem)
             return bytes.size - offset
         }
 
