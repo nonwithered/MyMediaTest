@@ -254,13 +254,13 @@ class CodecPlayerHelperController<T : AVSupport<T>>(
             renders.forEach {
                 it.close()
             }
+            playScope.cancel()
         }
-        playScope.cancel()
         val closeDecodeJob = decodeScope.launch {
             closePlayJob.join()
             formatContext.close()
+            decodeScope.cancel()
         }
-        decodeScope.cancel()
         runBlocking {
             closeDecodeJob.join()
         }
@@ -443,8 +443,8 @@ class CodecPlayerHelperController<T : AVSupport<T>>(
         }
         val ptsMs = frame.ptsMs
         TAG.logD { "performPlay $index render frame $ptsMs" }
+        val currentPosMs = playPosition
         while (true) {
-            val currentPosMs = playPosition
             while (true) {
                 val realPos = elapsedRealtime - startTimeMs
                 if (realPos >= ptsMs) {
