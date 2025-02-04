@@ -6,6 +6,11 @@ import android.media.AudioAttributes
 import android.media.AudioFocusRequest
 import android.media.AudioManager
 import android.net.Uri
+import android.opengl.EGL14
+import android.opengl.EGLContext
+import android.opengl.EGLDisplay
+import android.opengl.EGLExt
+import android.opengl.EGLSurface
 import android.opengl.GLES20
 import android.opengl.GLSurfaceView
 import android.view.Surface
@@ -23,6 +28,7 @@ import com.example.shared.utils.mainScope
 import com.example.shared.utils.systemService
 import com.example.shared.view.gl.GLTextureView
 import com.example.shared.view.gl.checkGlError
+import com.example.shared.view.gl.throwEglException
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -69,10 +75,13 @@ class CommonPlayerHelper(
         val surface: Surface,
         val listener: Listener,
         val textureCache: Channel<TextureItem>,
+        val eglDisplay: () -> EGLDisplay?,
+        val eglContext: () -> EGLContext?,
+        val eglSurface: () -> EGLSurface?,
     )
 
     abstract class Controller(
-        params: Params,
+        protected val params: Params,
     ) : AutoCloseable {
 
         protected val context = params.context
@@ -300,6 +309,9 @@ class CommonPlayerHelper(
                 surface = surface,
                 listener = listener,
                 textureCache = textureCache,
+                eglDisplay = ::eglDisplay,
+                eglContext = ::eglContext,
+                eglSurface = ::eglSurface,
             ))
         }.onFailure { e ->
             listener.onError(e)
@@ -405,8 +417,52 @@ class CommonPlayerHelper(
     override fun onSurfaceTextureUpdated(texture: SurfaceTexture) {
     }
 
+    private var eglDisplay: EGLDisplay? = null
+    private var eglContext: EGLContext? = null
+    private var eglSurface: EGLSurface? = null
+
     override fun onSurfaceCreated(gl: GL10?, config: EGLConfig?) {
+        val eglDisplay = EGL14.eglGetDisplay(EGL14.EGL_DEFAULT_DISPLAY).also {
+            eglDisplay = it!!
+        }
+        val eglContext = EGL14.eglCreateContext(
+            eglDisplay,
+            getEGLConfig(eglDisplay, EGL_CONFIG_ATTRIBUTES),
+            EGL14.EGL_NO_CONTEXT,
+            intArrayOf(EGL14.EGL_CONTEXT_CLIENT_VERSION, 2, EGL14.EGL_NONE),
+            0,
+        ).also {
+            eglContext = it!!
+        }
+        val eglSurface = EGL14.eglCreateWindowSurface(
+            eglDisplay,
+            getEGLConfig(eglDisplay, EGL_CONFIG_ATTRIBUTES),
+            surface!!,
+            intArrayOf(EGL14.EGL_NONE),
+            0,
+        ).also {
+            eglSurface = it!!
+        }
+//        if (!EGL14.eglMakeCurrent(eglDisplay, eglSurface, eglSurface, eglContext)) {
+//            throwEglException("eglMakeCurrent", EGL14.eglGetError())
+//        }
         initTextureCache(gl)
+    }
+
+    private fun getEGLConfig(eglDisplay: EGLDisplay, attrib: IntArray): android.opengl.EGLConfig {
+        val configs = arrayOfNulls<android.opengl.EGLConfig>(1)
+        val numConfigs = IntArray(1)
+        val success = EGL14.eglChooseConfig(
+            eglDisplay,
+            attrib,
+            0,
+            configs,
+            0,
+            1,
+            numConfigs,
+            0,
+        )
+        return configs.first()!!
     }
 
     override fun onSurfaceChanged(gl: GL10?, width: Int, height: Int) {
@@ -440,4 +496,23 @@ class CommonPlayerHelper(
         capacity = factory.textureCacheSize,
         onBufferOverflow = BufferOverflow.SUSPEND,
     )
+
+    private companion object {
+
+        /**
+         * @see androidx.media3.common.util.EGLSurfaceTexture.EGL_CONFIG_ATTRIBUTES
+         */
+        private val EGL_CONFIG_ATTRIBUTES = intArrayOf(
+            EGL14.EGL_RENDERABLE_TYPE, EGL14.EGL_OPENGL_ES2_BIT,
+            EGL14.EGL_RED_SIZE, 8,
+            EGL14.EGL_GREEN_SIZE, 8,
+            EGL14.EGL_BLUE_SIZE, 8,
+            EGL14.EGL_ALPHA_SIZE, 8,
+            EGL14.EGL_DEPTH_SIZE, 0,
+            EGL14.EGL_CONFIG_CAVEAT, EGL14.EGL_NONE,
+            EGL14.EGL_SURFACE_TYPE, EGL14.EGL_WINDOW_BIT,
+            EGL14.EGL_RENDERABLE_TYPE, EGLExt.EGL_RECORDABLE_ANDROID,
+            EGL14.EGL_NONE,
+        )
+    }
 }

@@ -3,6 +3,7 @@ package com.example.mymediatest.play
 import android.media.AudioFormat
 import android.media.AudioManager
 import android.media.AudioTrack
+import android.opengl.EGL14
 import android.opengl.GLES11Ext
 import android.opengl.GLES20
 import android.os.HandlerThread
@@ -24,6 +25,7 @@ import com.example.shared.utils.logD
 import com.example.shared.utils.onDispose
 import com.example.shared.utils.setValue
 import com.example.shared.view.gl.checkGlError
+import com.example.shared.view.gl.throwEglException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.channels.BufferOverflow
@@ -296,7 +298,7 @@ class CodecPlayerHelperController<T : AVSupport<T>>(
             )
             mime.isVideo -> VideoRender(
                 support = support,
-                textureCache = textureCache,
+                params = params,
             )
             else -> EmptyRenderer(
                 support = support,
@@ -567,7 +569,7 @@ class CodecPlayerHelperController<T : AVSupport<T>>(
 
     private class VideoRender<T : AVSupport<T>>(
         support: T,
-        private val textureCache: Channel<TextureItem>,
+        private val params: Params,
     ) : Renderer<T>(
         support = support,
     ) {
@@ -635,7 +637,7 @@ void main() {
         private fun updateTextureItem(item: TextureItem?) {
             synchronized(this) {
                 textureItem?.let {
-                    textureCache.trySend(it)
+                    params.textureCache.trySend(it)
                 }
                 textureItem = item
             }
@@ -710,6 +712,10 @@ void main() {
 
             GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP, 0, 4)
             checkGlError()
+
+//            if (!EGL14.eglSwapBuffers(params.eglDisplay()!!, params.eglSurface()!!)) {
+//                throwEglException("eglSwapBuffers", EGL14.eglGetError())
+//            }
         }
 
         private fun initProgram(): Attrib {
