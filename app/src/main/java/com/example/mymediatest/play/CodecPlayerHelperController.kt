@@ -5,9 +5,11 @@ import android.media.AudioFormat
 import android.media.AudioManager
 import android.media.AudioTrack
 import android.net.Uri
+import android.opengl.GLES20
 import android.os.HandlerThread
 import android.os.SystemClock
 import android.view.Surface
+import com.example.mymediatest.play.base.BasePlayerHelper
 import com.example.mymediatest.play.base.CommonPlayerHelper
 import com.example.mymediatest.play.support.AVFrame
 import com.example.mymediatest.play.support.AVPacket
@@ -16,12 +18,14 @@ import com.example.mymediatest.play.support.AVSupport
 import com.example.mymediatest.utils.isAudio
 import com.example.mymediatest.utils.isVideo
 import com.example.shared.utils.TAG
+import com.example.shared.utils.Tuple2
 import com.example.shared.utils.asCoroutineScope
 import com.example.shared.utils.forEach
 import com.example.shared.utils.getValue
 import com.example.shared.utils.logD
 import com.example.shared.utils.onDispose
 import com.example.shared.utils.setValue
+import com.example.shared.view.gl.checkGlError
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.channels.BufferOverflow
@@ -34,6 +38,8 @@ import kotlinx.coroutines.yield
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicLong
+import javax.microedition.khronos.egl.EGLConfig
+import javax.microedition.khronos.opengles.GL10
 
 class CodecPlayerHelperController<T : AVSupport<T>>(
     context: Context,
@@ -104,6 +110,14 @@ class CodecPlayerHelperController<T : AVSupport<T>>(
 
     private val streams = formatContext.streams()
 
+    private val syncStreamIndex = streams.indexOfFirst {
+        it.mime().isAudio
+    }
+
+    private val viewStreamIndex = streams.indexOfFirst {
+        it.mime().isVideo
+    }
+
     private val bufferChannels = streams.map {
         Channel<FrameBuffer<T>>(
             capacity = MAX_BUFFER_SIZE,
@@ -113,14 +127,6 @@ class CodecPlayerHelperController<T : AVSupport<T>>(
 
     private val renders = streams.map {
         createRenderer(it)
-    }
-
-    private val syncStreamIndex = streams.indexOfFirst {
-        it.mime().isAudio
-    }
-
-    private val viewStreamIndex = streams.indexOfFirst {
-        it.mime().isVideo
     }
 
     private var playTask: Job? = null
@@ -260,6 +266,10 @@ class CodecPlayerHelperController<T : AVSupport<T>>(
         }
     }
 
+    override fun asRenderer(): BasePlayerHelper.GLRenderer? {
+        return renders.getOrNull(viewStreamIndex) as? BasePlayerHelper.GLRenderer
+    }
+
     private fun createRenderer(stream: AVStream<T>): Renderer {
         val mime = stream.mime()
         val channelConfig = when (stream.channelCount()) {
@@ -278,7 +288,7 @@ class CodecPlayerHelperController<T : AVSupport<T>>(
                     AudioTrack.MODE_STREAM,
                 )
             )
-            mime.isVideo -> EmptyRenderer // TODO
+            mime.isVideo -> VideoRender()
             else -> EmptyRenderer
         }
     }
@@ -490,6 +500,56 @@ class CodecPlayerHelperController<T : AVSupport<T>>(
         override fun close() {
             audioTrack.stop()
             audioTrack.release()
+        }
+    }
+
+    private class VideoRender : Renderer, BasePlayerHelper.GLRenderer {
+
+        @Volatile
+        private var frame: Tuple2<ByteArray, Int>? = null
+
+        @Volatile
+        private var isPlaying = false
+
+        override fun onRender(bytes: ByteArray, offset: Int): Int {
+            frame = bytes to offset
+            return bytes.size - offset
+        }
+
+        override fun onStart() {
+            isPlaying = true
+        }
+
+        override fun onPause() {
+            isPlaying = false
+        }
+
+        override fun close() {
+        }
+
+        override fun onSurfaceCreated(gl: GL10?, config: EGLConfig?) {
+            GLES20.glClearColor(0f, 0f, 0f, 0f)
+            GLES20.glEnable(GLES20.GL_BLEND)
+            GLES20.glBlendFuncSeparate(
+                GLES20.GL_SRC_ALPHA,
+                GLES20.GL_ONE_MINUS_SRC_ALPHA,
+                GLES20.GL_ONE,
+                GLES20.GL_ONE_MINUS_SRC_ALPHA,
+            )
+            checkGlError()
+        }
+
+        override fun onSurfaceChanged(gl: GL10?, width: Int, height: Int) {
+            GLES20.glViewport(0, 0, width, height)
+            checkGlError()
+        }
+
+        override fun onDrawFrame(gl: GL10?) {
+            if (!isPlaying) {
+                return
+            }
+            GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT or GLES20.GL_DEPTH_BUFFER_BIT)
+            checkGlError()
         }
     }
 }

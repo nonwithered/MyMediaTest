@@ -66,4 +66,6 @@ class MediaPlayerHelperController(
         mp.reset()
         mp.release()
     }
+
+    override fun asRenderer() = null
 }

@@ -71,6 +71,8 @@ class CommonPlayerHelper(
         abstract fun start()
 
         abstract fun pause()
+
+        abstract fun asRenderer(): GLRenderer?
     }
 
     enum class State {
@@ -127,7 +129,7 @@ class CommonPlayerHelper(
             field = value
             val isValidState = targetState == State.PLAYING
             val hasValidSize = videoSize == value
-            if (commonPlayer !== null && isValidState && hasValidSize) {
+            if (controller !== null && isValidState && hasValidSize) {
                 seekWhenPrepared.takeIf { pos -> pos != 0L }?.let { pos -> seekTo(pos) }
                 start()
             }
@@ -135,7 +137,7 @@ class CommonPlayerHelper(
 
     private var seekWhenPrepared = 0L
 
-    private var commonPlayer: Controller? = null
+    private var controller: Controller? = null
 
     private var audioFocusType = AudioManager.AUDIOFOCUS_GAIN
     private val audioManager = context.systemService<AudioManager>()
@@ -201,9 +203,13 @@ class CommonPlayerHelper(
         return true
     }
 
+    override fun asRenderer(): GLRenderer? {
+        return controller?.asRenderer()
+    }
+
     private val isInPlaybackState: Boolean
         get() {
-            commonPlayer ?: return false
+            controller ?: return false
             return when (_currentState.value) {
                 State.ERROR, State.IDLE, State.PREPARING -> false
                 else -> true
@@ -254,7 +260,7 @@ class CommonPlayerHelper(
         if (audioFocusType != AudioManager.AUDIOFOCUS_NONE) {
             audioManager.requestAudioFocus(audioFocusRequest)
         }
-        commonPlayer = kotlin.runCatching {
+        controller = kotlin.runCatching {
             factory.createController(
                 context,
                 uri,
@@ -269,9 +275,9 @@ class CommonPlayerHelper(
     }
 
     private fun release(clearTargetState: Boolean) {
-        val mp = commonPlayer ?: return
+        val mp = controller ?: return
         mp.close()
-        commonPlayer = null
+        controller = null
         _currentState.value = State.IDLE
         if (clearTargetState) {
             targetState = State.IDLE
@@ -287,7 +293,7 @@ class CommonPlayerHelper(
 
     fun start() {
         if (isInPlaybackState) {
-            commonPlayer?.start()
+            controller?.start()
             _currentState.value = State.PLAYING
         }
         targetState = State.PLAYING
@@ -295,7 +301,7 @@ class CommonPlayerHelper(
 
     fun pause() {
         if (isInPlaybackState) {
-            val mp = commonPlayer!!
+            val mp = controller!!
             if (mp.isPlaying) {
                 mp.pause()
                 _currentState.value = State.PAUSED
@@ -307,7 +313,7 @@ class CommonPlayerHelper(
     val duration: Long
         get() {
             if (isInPlaybackState) {
-                return commonPlayer!!.duration
+                return controller!!.duration
             }
             return -1
         }
@@ -315,14 +321,14 @@ class CommonPlayerHelper(
     val currentPosition: Long
         get() {
             if (isInPlaybackState) {
-                return commonPlayer!!.currentPosition
+                return controller!!.currentPosition
             }
             return 0
         }
 
     fun seekTo(pos: Long) {
         seekWhenPrepared = if (isInPlaybackState) {
-            commonPlayer?.seekTo(pos)
+            controller?.seekTo(pos)
             0
         } else {
             pos
@@ -331,7 +337,7 @@ class CommonPlayerHelper(
 
     val isPlaying: Boolean
         get() {
-            return isInPlaybackState && commonPlayer!!.isPlaying
+            return isInPlaybackState && controller!!.isPlaying
         }
 
     override fun surfaceCreated(holder: SurfaceHolder) {

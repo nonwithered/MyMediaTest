@@ -18,11 +18,11 @@ class Test004CodecPlayer: CommonPlayerFragment<Test004CodecPlayer.Params, BasePl
     ) {
 
         SURFACE(
-            R.layout.common_player_surface_view,
+            R.layout.common_player_gl_surface_view,
         ),
 
         TEXTURE(
-            R.layout.common_player_texture_view,
+            R.layout.common_player_gl_texture_view,
         ),
     }
 

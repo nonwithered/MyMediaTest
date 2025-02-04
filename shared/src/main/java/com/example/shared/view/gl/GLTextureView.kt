@@ -27,7 +27,7 @@ import javax.microedition.khronos.egl.EGLSurface
 import javax.microedition.khronos.opengles.GL
 import javax.microedition.khronos.opengles.GL10
 
-class GLTextureView(
+open class GLTextureView(
     context: Context,
     attributeSet: AttributeSet,
 ) : TextureView(
