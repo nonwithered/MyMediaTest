@@ -21,10 +21,13 @@ class MediaFormatContext(
         setDataSource(context, uri, null)
     }
 
-    val streams: List<MediaStream> = (0 until extractor.trackCount).map {
-        MediaStream(
-            format = extractor.getTrackFormat(it),
-        )
+    val streams: List<MediaStream> = run {
+        (0 until extractor.trackCount).map {
+            val info = MediaStream.TrackInfo(extractor.getTrackFormat(it))
+            MediaStream(
+                info = info,
+            )
+        }
     }
 
     override fun close() {

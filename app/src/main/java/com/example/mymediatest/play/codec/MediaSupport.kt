@@ -4,6 +4,8 @@ import android.content.Context
 import android.media.MediaCodec
 import android.media.MediaExtractor
 import android.net.Uri
+import android.view.Surface
+import com.example.mymediatest.play.codec.MediaSupport.send
 import com.example.mymediatest.play.support.AVCodecContext
 import com.example.mymediatest.play.support.AVFormatContext
 import com.example.mymediatest.play.support.AVFrame
@@ -87,15 +89,20 @@ object MediaSupport : AVSupport<MediaSupport> {
         return formatContext.read(stream)
     }
 
+    override fun AVCodecContext<MediaSupport>.ensureInit(surface: Surface?) {
+        val codecContext = this as MediaCodecContext
+        codecContext.ensureInit(surface)
+    }
+
     override fun AVCodecContext<MediaSupport>.send(packet: AVPacket<MediaSupport>): Boolean {
         val codecContext = this as MediaCodecContext
         packet as MediaPacket
         return codecContext.send(packet)
     }
 
-    override fun AVCodecContext<MediaSupport>.receive(): AVFrame<MediaSupport>? {
+    override fun AVCodecContext<MediaSupport>.receive(surface: Surface?): AVFrame<MediaSupport>? {
         val codecContext = this as MediaCodecContext
-        return codecContext.receive()
+        return codecContext.receive(surface)
     }
 
     override fun AVPacket<MediaSupport>.pts(): TimeStamp {

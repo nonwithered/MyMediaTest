@@ -1,6 +1,9 @@
 package com.example.mymediatest.test
 
+import android.content.Context
+import android.net.Uri
 import android.os.Bundle
+import android.view.Surface
 import androidx.annotation.LayoutRes
 import com.example.mymediatest.R
 import com.example.mymediatest.play.CodecPlayerHelperController
@@ -54,9 +57,17 @@ class Test004CodecPlayer: CommonPlayerFragment<Test004CodecPlayer.Params, BasePl
     override val playerLayoutId: Int
         get() = params.viewType.playerLayoutId
 
-    override val factory = CommonPlayerHelper.Factory { context, uri, surface, listener ->
-        when (params.codecType) {
-            CodecType.MEDIA -> CodecPlayerHelperController(context, uri, surface, listener, params.codecType.support)
+    override val factory = object : CommonPlayerHelper.Factory {
+
+        override val textureCacheSize: Int
+            get() = when (params.codecType) {
+                CodecType.MEDIA -> CodecPlayerHelperController.MAX_BUFFER_SIZE + 1
+            }
+
+        override fun createController(
+            controllerParams: CommonPlayerHelper.Params,
+        ): CommonPlayerHelper.Controller {
+            return CodecPlayerHelperController(controllerParams, params.codecType.support)
         }
     }
 }

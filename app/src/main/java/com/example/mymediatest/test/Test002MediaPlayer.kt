@@ -41,7 +41,12 @@ class Test002MediaPlayer : CommonPlayerFragment<Test002MediaPlayer.Params, BaseP
     override val playerLayoutId: Int
         get() = params.viewType.playerLayoutId
     
-    override val factory = CommonPlayerHelper.Factory { context, uri, surface, listener ->
-        MediaPlayerHelperController(context, uri, surface, listener)
+    override val factory = object : CommonPlayerHelper.Factory {
+
+        override fun createController(
+            controllerParams: CommonPlayerHelper.Params,
+        ): CommonPlayerHelper.Controller {
+            return MediaPlayerHelperController(controllerParams)
+        }
     }
 }

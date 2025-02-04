@@ -1,24 +1,16 @@
 package com.example.mymediatest.play
 
-import android.content.Context
 import android.media.MediaPlayer
-import android.net.Uri
-import android.view.Surface
 import com.example.mymediatest.play.base.CommonPlayerHelper
+import com.example.mymediatest.play.base.CommonPlayerHelper.Params
 
 /**
  * @see android.media.MediaPlayer
  */
 class MediaPlayerHelperController(
-    context: Context,
-    uri: Uri,
-    surface: Surface,
-    listener: CommonPlayerHelper.Listener,
+    params: Params,
 ) : CommonPlayerHelper.Controller(
-    context = context,
-    uri = uri,
-    surface = surface,
-    listener = listener,
+    params = params,
 ) {
 
     private val mp = MediaPlayer().apply {
@@ -66,6 +58,4 @@ class MediaPlayerHelperController(
         mp.reset()
         mp.release()
     }
-
-    override fun asRenderer() = null
 }

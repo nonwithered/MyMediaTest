@@ -9,8 +9,9 @@ import android.opengl.GLES20
 import android.os.HandlerThread
 import android.os.SystemClock
 import android.view.Surface
-import com.example.mymediatest.play.base.BasePlayerHelper
 import com.example.mymediatest.play.base.CommonPlayerHelper
+import com.example.mymediatest.play.base.CommonPlayerHelper.Params
+import com.example.mymediatest.play.base.CommonPlayerHelper.TextureItem
 import com.example.mymediatest.play.support.AVFrame
 import com.example.mymediatest.play.support.AVPacket
 import com.example.mymediatest.play.support.AVStream
@@ -18,7 +19,6 @@ import com.example.mymediatest.play.support.AVSupport
 import com.example.mymediatest.utils.isAudio
 import com.example.mymediatest.utils.isVideo
 import com.example.shared.utils.TAG
-import com.example.shared.utils.Tuple2
 import com.example.shared.utils.asCoroutineScope
 import com.example.shared.utils.forEach
 import com.example.shared.utils.getValue
@@ -38,25 +38,22 @@ import kotlinx.coroutines.yield
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicLong
-import javax.microedition.khronos.egl.EGLConfig
 import javax.microedition.khronos.opengles.GL10
 
 class CodecPlayerHelperController<T : AVSupport<T>>(
-    context: Context,
-    uri: Uri,
-    surface: Surface,
-    listener: CommonPlayerHelper.Listener,
+    params: Params,
     support: AVSupport<T>,
 ) : CommonPlayerHelper.Controller(
-    context = context,
-    uri = uri,
-    surface = surface,
-    listener = listener,
+    params = params,
 ), AVSupport<T> by support {
 
     private interface Renderer : AutoCloseable {
 
-        fun onRender(bytes: ByteArray, offset: Int): Int
+        fun onRender(
+            bytes: ByteArray,
+            offset: Int,
+            textureItem: TextureItem?,
+        ): Int
 
         fun onStart()
 
@@ -65,7 +62,11 @@ class CodecPlayerHelperController<T : AVSupport<T>>(
 
     private object EmptyRenderer : Renderer {
 
-        override fun onRender(bytes: ByteArray, offset: Int): Int {
+        override fun onRender(
+            bytes: ByteArray,
+            offset: Int,
+            textureItem: TextureItem?,
+        ): Int {
             return bytes.size - offset
         }
 
@@ -79,20 +80,21 @@ class CodecPlayerHelperController<T : AVSupport<T>>(
         }
     }
 
-    private companion object {
+    companion object {
 
-        private const val MAX_BUFFER_SIZE = 10
+        const val MAX_BUFFER_SIZE = 10
 
         private const val SEEK_PREVIOUS_S = 1L
 
         /**
          * @see androidx.media3.exoplayer.ExoPlayerImplInternal.BUFFERING_MAXIMUM_INTERVAL_MS
          */
-        const val BUFFERING_MAXIMUM_INTERVAL_MS = 10L
+        private const val BUFFERING_MAXIMUM_INTERVAL_MS = 10L
     }
 
     private data class FrameBuffer<T : AVSupport<T>>(
         val frame: AVFrame<T>?,
+        val textureItem: TextureItem?,
     )
 
     private val formatContext = open(
@@ -266,10 +268,6 @@ class CodecPlayerHelperController<T : AVSupport<T>>(
         }
     }
 
-    override fun asRenderer(): BasePlayerHelper.GLRenderer? {
-        return renders.getOrNull(viewStreamIndex) as? BasePlayerHelper.GLRenderer
-    }
-
     private fun createRenderer(stream: AVStream<T>): Renderer {
         val mime = stream.mime()
         val channelConfig = when (stream.channelCount()) {
@@ -297,6 +295,11 @@ class CodecPlayerHelperController<T : AVSupport<T>>(
         coroutineScope {
             streams.forEachIndexed { index, stream ->
                 val bufferChannel = bufferChannels[index]
+                val textureCache = if (index == viewStreamIndex) {
+                    textureCache
+                } else {
+                    null
+                }
                 launch {
                     val monitor = launch {
                         onDispose {
@@ -307,11 +310,23 @@ class CodecPlayerHelperController<T : AVSupport<T>>(
                     val eosStateRef = AtomicBoolean(false)
                     val lastPtsRef = AtomicLong(Long.MIN_VALUE)
                     val lastTimeRef = AtomicLong(Long.MIN_VALUE)
+
+                    textureCache?.receive().let { item ->
+                        TAG.logD { "performDecode $index ensureInit begin" }
+                        stream.decoder().ensureInit(item?.surface)
+                        TAG.logD { "performDecode $index ensureInit end" }
+                        if (item !== null) {
+                            textureCache?.send(item)
+                        }
+                    }
+                    TAG.logD { "performDecode $index start" }
+
                     while (true) {
                         val end = performDecode(
                             index = index,
                             stream = stream,
                             bufferChannel = bufferChannel,
+                            textureCache = textureCache,
                             eosStateRef = eosStateRef,
                             lastPtsRef = lastPtsRef,
                             lastTimeRef = lastTimeRef,
@@ -332,6 +347,7 @@ class CodecPlayerHelperController<T : AVSupport<T>>(
         index: Int,
         stream: AVStream<T>,
         bufferChannel: Channel<FrameBuffer<T>>,
+        textureCache: Channel<TextureItem>?,
         eosStateRef: AtomicBoolean,
         lastPtsRef: AtomicLong,
         lastTimeRef: AtomicLong,
@@ -363,28 +379,47 @@ class CodecPlayerHelperController<T : AVSupport<T>>(
         }
         while (true) {
             val curTime = elapsedRealtime
-            val frame = stream.decoder().receive()
+            val textureItem = if (textureCache === null) {
+                null
+            } else {
+                TAG.logD { "performDecode $index textureCache.receive begin" }
+                val item = textureCache.receive()
+                TAG.logD { "performDecode $index textureCache.receive end" }
+                item
+            }
+            val frame = stream.decoder().receive(textureItem?.surface)
             val ptsMs = frame?.ptsMs
-            TAG.logD { "performDecode $index frame receive $mime $ptsMs $eosState $lastTime $curTime" }
+            TAG.logD { "performDecode $index frame receive $mime eosState=$eosState ptsMs=$ptsMs lastPts=$lastPts lastTime=$lastTime curTime=$curTime" }
             val eos = if (ptsMs === null) {
                 eosState && lastTime != Long.MIN_VALUE && lastTime + 100 < curTime
             } else {
-                frame.eos() || ptsMs <= lastPts
+                frame.eos()
+            }
+            val reuseTexture = suspend {
+                if (textureItem !== null) {
+                    TAG.logD { "performDecode $index textureCache.send begin" }
+                    textureCache?.send(textureItem)
+                    TAG.logD { "performDecode $index textureCache.send end" }
+                }
             }
             if (eos) {
+                reuseTexture()
                 bufferChannel.send(FrameBuffer(
                     frame = null,
+                    textureItem = null,
                 ))
                 TAG.logD { "performDecode $index frame eos $mime $ptsMs" }
                 return true
             }
-            if (ptsMs === null) {
+            if (ptsMs === null || ptsMs <= lastPts) {
+                reuseTexture()
                 break
             }
             lastPts = ptsMs
             lastTime = curTime
             bufferChannel.send(FrameBuffer(
                 frame = frame,
+                textureItem = textureItem,
             ))
         }
         return false
@@ -405,10 +440,17 @@ class CodecPlayerHelperController<T : AVSupport<T>>(
                     var startState = true
                     bufferChannel.forEach { buffer ->
                         val frame = buffer.frame
+                        val reuseTexture = {
+                            buffer.textureItem?.let {
+                                textureCache.trySend(it)
+                            }
+                        }
                         if (startState && frame === null) {
+                            reuseTexture()
                             return@forEach true
                         }
                         if (startState && frame !== null && frame.ptsMs > elapsedRealtime - startTimeMs + 100) {
+                            reuseTexture()
                             return@forEach true
                         }
                         startState = false
@@ -456,7 +498,7 @@ class CodecPlayerHelperController<T : AVSupport<T>>(
             }
             val offset = frame.offset()
             val bytes = frame.bytes()
-            val consumed = renderer.onRender(bytes, offset)
+            val consumed = renderer.onRender(bytes, offset, buffer.textureItem)
             TAG.logD { "performPlay $index render consumed $ptsMs $offset ${bytes.size} $consumed" }
             if (offset + consumed >= bytes.size) {
                 if (index == syncStreamIndex) {
@@ -485,7 +527,11 @@ class CodecPlayerHelperController<T : AVSupport<T>>(
         private val audioTrack: AudioTrack,
     ): Renderer {
 
-        override fun onRender(bytes: ByteArray, offset: Int): Int {
+        override fun onRender(
+            bytes: ByteArray,
+            offset: Int,
+            textureItem: TextureItem?,
+        ): Int {
             return audioTrack.write(bytes, offset, bytes.size - offset)
         }
 
@@ -503,16 +549,29 @@ class CodecPlayerHelperController<T : AVSupport<T>>(
         }
     }
 
-    private class VideoRender : Renderer, BasePlayerHelper.GLRenderer {
-
-        @Volatile
-        private var frame: Tuple2<ByteArray, Int>? = null
+    private inner class VideoRender : Renderer {
 
         @Volatile
         private var isPlaying = false
 
-        override fun onRender(bytes: ByteArray, offset: Int): Int {
-            frame = bytes to offset
+        @Volatile
+        private var textureItem: TextureItem? = null
+
+        private fun updateTextureItem(item: TextureItem?) {
+            synchronized(this) {
+                textureItem?.let {
+                    textureCache.trySend(it)
+                }
+                textureItem = item
+            }
+        }
+
+        override fun onRender(
+            bytes: ByteArray,
+            offset: Int,
+            textureItem: TextureItem?,
+        ): Int {
+            updateTextureItem(textureItem)
             return bytes.size - offset
         }
 
@@ -527,29 +586,16 @@ class CodecPlayerHelperController<T : AVSupport<T>>(
         override fun close() {
         }
 
-        override fun onSurfaceCreated(gl: GL10?, config: EGLConfig?) {
-            GLES20.glClearColor(0f, 0f, 0f, 0f)
-            GLES20.glEnable(GLES20.GL_BLEND)
-            GLES20.glBlendFuncSeparate(
-                GLES20.GL_SRC_ALPHA,
-                GLES20.GL_ONE_MINUS_SRC_ALPHA,
-                GLES20.GL_ONE,
-                GLES20.GL_ONE_MINUS_SRC_ALPHA,
-            )
-            checkGlError()
-        }
-
-        override fun onSurfaceChanged(gl: GL10?, width: Int, height: Int) {
-            GLES20.glViewport(0, 0, width, height)
-            checkGlError()
-        }
-
-        override fun onDrawFrame(gl: GL10?) {
+        fun onDrawFrame(gl: GL10?) {
             if (!isPlaying) {
                 return
             }
             GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT or GLES20.GL_DEPTH_BUFFER_BIT)
             checkGlError()
         }
+    }
+
+    override fun onDrawFrame(gl: GL10?) {
+        (renders.getOrNull(viewStreamIndex) as? CodecPlayerHelperController<*>.VideoRender)?.onDrawFrame(gl)
     }
 }

@@ -2,6 +2,7 @@ package com.example.mymediatest.play.support
 
 import android.content.Context
 import android.net.Uri
+import android.view.Surface
 import com.example.shared.utils.TimeStamp
 
 interface AVSupport<T : AVSupport<T>> {
@@ -35,9 +36,11 @@ interface AVSupport<T : AVSupport<T>> {
 
     fun AVFormatContext<T>.read(stream: AVStream<T>): AVPacket<T>?
 
+    fun AVCodecContext<T>.ensureInit(surface: Surface?)
+
     fun AVCodecContext<T>.send(packet: AVPacket<T>): Boolean
 
-    fun AVCodecContext<T>.receive(): AVFrame<T>?
+    fun AVCodecContext<T>.receive(surface: Surface?): AVFrame<T>?
 
     fun AVPacket<T>.pts(): TimeStamp
 

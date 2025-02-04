@@ -2,6 +2,7 @@ package com.example.mymediatest.play.codec
 
 import android.media.MediaCodec
 import android.media.MediaFormat
+import android.view.Surface
 import com.example.mymediatest.play.support.AVCodecContext
 import com.example.shared.utils.Tuple2
 import com.example.shared.utils.Tuple3
@@ -9,13 +10,19 @@ import com.example.shared.utils.cross
 import java.nio.ByteBuffer
 
 class MediaCodecContext(
-    format: MediaFormat,
+    private val format: MediaFormat,
     private val codec: MediaCodec,
 ) : AVCodecContext<MediaSupport>,
     AutoCloseable {
 
-    init {
-        codec.configure(format, null, null, 0)
+    private var inited = false
+
+    fun ensureInit(surface: Surface?) {
+        if (inited) {
+            return
+        }
+        inited = true
+        codec.configure(format, surface, null, 0)
         codec.start()
     }
 
@@ -59,11 +66,14 @@ class MediaCodecContext(
         return (packet.sampleFlags and MediaCodec.BUFFER_FLAG_END_OF_STREAM) != 0
     }
 
-    fun receive(): MediaFrame? {
+    fun receive(surface: Surface?): MediaFrame? {
         val (bufferIndex, buffer, bufferInfo) = dequeueOutputBuffer() ?: return null
         val bytes = ByteArray(bufferInfo.size)
         buffer.get(bytes)
-        codec.releaseOutputBuffer(bufferIndex, false)
+        if (surface !== null) {
+            codec.setOutputSurface(surface)
+        }
+        codec.releaseOutputBuffer(bufferIndex, surface !== null)
         return MediaFrame(
             bytes = bytes,
             offset = bufferInfo.offset,

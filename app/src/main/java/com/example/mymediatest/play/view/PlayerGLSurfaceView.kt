@@ -6,8 +6,6 @@ import android.util.AttributeSet
 import com.example.mymediatest.play.base.BasePlayerHelper
 import com.example.shared.utils.LateInitProxy
 import com.example.shared.utils.accessibilityClassNameAdapter
-import javax.microedition.khronos.egl.EGLConfig
-import javax.microedition.khronos.opengles.GL10
 
 class PlayerGLSurfaceView(
     context: Context,
@@ -16,13 +14,8 @@ class PlayerGLSurfaceView(
     context,
     attributeSet,
 ),
-    GLSurfaceView.Renderer,
     BasePlayerHelper.Holder,
     LateInitProxy.Owner {
-
-    init {
-        setRenderer(this)
-    }
 
     override var player: BasePlayerHelper by LateInitProxy()
 
@@ -43,17 +36,5 @@ class PlayerGLSurfaceView(
         if (!result) {
             super.onMeasure(widthMeasureSpec, heightMeasureSpec)
         }
-    }
-
-    override fun onSurfaceCreated(gl: GL10?, config: EGLConfig?) {
-        player.asRenderer()?.onSurfaceCreated(gl, config)
-    }
-
-    override fun onSurfaceChanged(gl: GL10?, width: Int, height: Int) {
-        player.asRenderer()?.onSurfaceChanged(gl, width, height)
-    }
-
-    override fun onDrawFrame(gl: GL10?) {
-        player.asRenderer()?.onDrawFrame(gl)
     }
 }

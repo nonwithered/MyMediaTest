@@ -6,7 +6,7 @@ import com.example.mymediatest.play.support.AVStream
 import com.example.shared.bean.MediaFormatProperties
 
 class MediaStream(
-    format: MediaFormat,
+    val info: TrackInfo,
 ) : AVStream<MediaSupport> {
 
     var posUs = -1L
@@ -25,8 +25,6 @@ class MediaStream(
         var width: Int? by MediaFormat.KEY_WIDTH.property()
         var height: Int? by MediaFormat.KEY_HEIGHT.property()
     }
-
-    val info = TrackInfo(format)
 
     val decoder = MediaCodecContext(
         format = info.format,

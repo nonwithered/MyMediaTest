@@ -6,6 +6,8 @@ import android.media.AudioAttributes
 import android.media.AudioFocusRequest
 import android.media.AudioManager
 import android.net.Uri
+import android.opengl.GLES20
+import android.opengl.GLSurfaceView
 import android.view.Surface
 import android.view.SurfaceHolder
 import android.view.SurfaceView
@@ -19,8 +21,13 @@ import com.example.shared.utils.logD
 import com.example.shared.utils.logI
 import com.example.shared.utils.mainScope
 import com.example.shared.utils.systemService
+import com.example.shared.view.gl.GLTextureView
+import kotlinx.coroutines.channels.BufferOverflow
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
+import javax.microedition.khronos.egl.EGLConfig
+import javax.microedition.khronos.opengles.GL10
 
 /**
  * @see android.widget.VideoView
@@ -29,16 +36,18 @@ class CommonPlayerHelper(
     context: Context,
     private val factory: Factory,
 ) : BasePlayerHelper(context),
+    GLSurfaceView.Renderer,
+    GLTextureView.Renderer,
     SurfaceHolder.Callback2,
     TextureView.SurfaceTextureListener {
 
-    fun interface Factory {
+    interface Factory {
+
+        val textureCacheSize: Int
+            get() = 0
 
         fun createController(
-            context: Context,
-            uri: Uri,
-            surface: Surface,
-            listener: Listener,
+            controllerParams: Params,
         ): Controller
     }
 
@@ -53,12 +62,23 @@ class CommonPlayerHelper(
         fun onError(e: Throwable)
     }
 
+    data class Params(
+        val context: Context,
+        val uri: Uri,
+        val surface: Surface,
+        val listener: Listener,
+        val textureCache: Channel<TextureItem>,
+    )
+
     abstract class Controller(
-        protected val context: Context,
-        protected val uri: Uri,
-        protected val surface: Surface,
-        protected val listener: Listener,
+        params: Params,
     ) : AutoCloseable {
+
+        protected val context = params.context
+        protected val uri = params.uri
+        protected val surface = params.surface
+        protected val listener = params.listener
+        protected val textureCache = params.textureCache
 
         abstract val isPlaying: Boolean
 
@@ -72,8 +92,14 @@ class CommonPlayerHelper(
 
         abstract fun pause()
 
-        abstract fun asRenderer(): GLRenderer?
+        open fun onDrawFrame(gl: GL10?) = Unit
     }
+
+    data class TextureItem(
+        val id: Int,
+        val texture: SurfaceTexture,
+        val surface: Surface,
+    )
 
     enum class State {
         ERROR,
@@ -188,6 +214,16 @@ class CommonPlayerHelper(
                 view.surfaceTextureListener = this
             }
         }
+        when (view) {
+            is GLSurfaceView -> {
+                view.setEGLContextClientVersion(2)
+                view.setRenderer(this)
+            }
+            is GLTextureView -> {
+                view.eglContextClientVersion = 2
+                view.renderer = this
+            }
+        }
     }
 
     override fun onMeasure(
@@ -201,10 +237,6 @@ class CommonPlayerHelper(
         )
         setMeasuredDimension(width, height)
         return true
-    }
-
-    override fun asRenderer(): GLRenderer? {
-        return controller?.asRenderer()
     }
 
     private val isInPlaybackState: Boolean
@@ -261,12 +293,13 @@ class CommonPlayerHelper(
             audioManager.requestAudioFocus(audioFocusRequest)
         }
         controller = kotlin.runCatching {
-            factory.createController(
-                context,
-                uri,
-                surface,
-                listener,
-            )
+            factory.createController(Params(
+                context = context,
+                uri = uri,
+                surface = surface,
+                listener = listener,
+                textureCache = textureCache,
+            ))
         }.onFailure { e ->
             listener.onError(e)
         }.getOrNull()?.also {
@@ -370,4 +403,36 @@ class CommonPlayerHelper(
 
     override fun onSurfaceTextureUpdated(texture: SurfaceTexture) {
     }
+
+    override fun onSurfaceCreated(gl: GL10?, config: EGLConfig?) {
+        initTextureCache()
+    }
+
+    override fun onSurfaceChanged(gl: GL10?, width: Int, height: Int) {
+        surfaceSize = width to height
+        GLES20.glViewport(0, 0, width, height)
+    }
+
+    override fun onDrawFrame(gl: GL10?) {
+        controller?.onDrawFrame(gl)
+    }
+
+    private fun initTextureCache() {
+        val array = IntArray(factory.textureCacheSize)
+        GLES20.glGenTextures(array.size, array, 0)
+        array.forEach { id ->
+            val texture = SurfaceTexture(id)
+            val surface = Surface(texture)
+            textureCache.trySend(TextureItem(
+                id = id,
+                texture = texture,
+                surface = surface,
+            ))
+        }
+    }
+
+    private val textureCache = Channel<TextureItem>(
+        capacity = factory.textureCacheSize,
+        onBufferOverflow = BufferOverflow.SUSPEND,
+    )
 }
