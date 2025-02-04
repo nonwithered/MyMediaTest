@@ -119,7 +119,8 @@ class CodecPlayerHelperController<T : AVSupport<T>>(
     }
 
     private var playTask: Job? = null
-    private var playCancelTask: Job? = null
+    private var playPauseTask: Job? = null
+    private var playStartTask: Job? = null
 
     override val isPlaying: Boolean
         get() = playTask !== null
@@ -147,14 +148,32 @@ class CodecPlayerHelperController<T : AVSupport<T>>(
 
     override fun seekTo(pos: Long) {
         TAG.logD { "seekTo $pos" }
-        val job = decodeTask
-        job.cancel()
+
+        val decodeJob = decodeTask
+        decodeJob.cancel()
+
         val posMs = pos - TimeUnit.SECONDS.toMillis(SEEK_PREVIOUS_S)
-        playPosition = posMs
-        decodeTask = decodeScope.launch {
-            job.join()
+        val oldPosMs = _playPosition.getAndSet(posMs)
+
+        val syncJob = decodeScope.launch {
+            decodeJob.join()
             formatContext.seek(posMs to TimeUnit.MILLISECONDS)
+        }
+
+        decodeTask = decodeScope.launch {
+            syncJob.join()
             performDecode()
+        }
+
+        val playJob = playTask
+        if (playJob !== null && oldPosMs > posMs) {
+            playJob.cancel()
+            val startTimeMs = elapsedRealtime - playPosition.coerceIn(0L, duration)
+            playTask = playScope.launch {
+                playJob.join()
+                syncJob.join()
+                performPlay(startTimeMs)
+            }
         }
     }
 
@@ -162,16 +181,24 @@ class CodecPlayerHelperController<T : AVSupport<T>>(
         if (isPlaying) {
             return
         }
-        TAG.logD { "start" }
-        val job = playCancelTask
-        playCancelTask = null
-        job?.cancel()
-        playTask = playScope.launch {
-            job?.join()
+        performStart()
+    }
+
+    private fun performStart() {
+        TAG.logD { "performStart" }
+        val playPauseJob = playPauseTask
+        val playStartJob = playScope.launch {
+            playPauseJob?.join()
             renders.forEach {
                 it.onStart()
             }
-            performPlay(elapsedRealtime - playPosition.coerceIn(0L, duration))
+        }.also {
+            playStartTask = it
+        }
+        val startTimeMs = elapsedRealtime - playPosition.coerceIn(0L, duration)
+        playTask = playScope.launch {
+            playStartJob.join()
+            performPlay(startTimeMs)
         }
     }
 
@@ -179,12 +206,19 @@ class CodecPlayerHelperController<T : AVSupport<T>>(
         if (!isPlaying) {
             return
         }
-        TAG.logD { "pause" }
-        val job = playTask
-        playTask = null
-        job?.cancel()
-        playCancelTask = playScope.launch {
-            job?.join()
+        performPause()
+    }
+
+    private fun performPause() {
+        TAG.logD { "performPause" }
+        val playStartJob = playStartTask
+        val playJob = playTask?.also {
+            it.cancel()
+            playTask = null
+        }
+        playPauseTask = playScope.launch {
+            playStartJob?.join()
+            playJob?.join()
             renders.forEach {
                 it.onPause()
             }
@@ -338,7 +372,11 @@ class CodecPlayerHelperController<T : AVSupport<T>>(
                     TAG.logD { "performPlay $index launch" }
                     var startState = true
                     bufferChannel.forEach { buffer ->
-                        if (startState && buffer.frame === null) {
+                        val frame = buffer.frame
+                        if (startState && frame === null) {
+                            return@forEach true
+                        }
+                        if (startState && frame !== null && frame.ptsMs > elapsedRealtime - startTimeMs + 100) {
                             return@forEach true
                         }
                         startState = false
