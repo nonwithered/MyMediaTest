@@ -1,14 +1,12 @@
 package com.example.mymediatest.play
 
-import android.content.Context
 import android.media.AudioFormat
 import android.media.AudioManager
 import android.media.AudioTrack
-import android.net.Uri
+import android.opengl.GLES11Ext
 import android.opengl.GLES20
 import android.os.HandlerThread
 import android.os.SystemClock
-import android.view.Surface
 import com.example.mymediatest.play.base.CommonPlayerHelper
 import com.example.mymediatest.play.base.CommonPlayerHelper.Params
 import com.example.mymediatest.play.base.CommonPlayerHelper.TextureItem
@@ -35,6 +33,9 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.yield
+import java.nio.ByteBuffer
+import java.nio.ByteOrder
+import java.nio.FloatBuffer
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicLong
@@ -286,7 +287,7 @@ class CodecPlayerHelperController<T : AVSupport<T>>(
                     AudioTrack.MODE_STREAM,
                 )
             )
-            mime.isVideo -> VideoRender()
+            mime.isVideo -> VideoRender(textureCache)
             else -> EmptyRenderer
         }
     }
@@ -549,7 +550,63 @@ class CodecPlayerHelperController<T : AVSupport<T>>(
         }
     }
 
-    private inner class VideoRender : Renderer {
+    private class VideoRender(
+        private val textureCache: Channel<TextureItem>,
+    ) : Renderer {
+
+        private val vertexCoods = nativeOrderFloatBuffer(
+            -1f, -1f,
+            1f, -1f,
+            -1f, 1f,
+            1f, 1f,
+        )
+
+        private val textureCoods = nativeOrderFloatBuffer(
+            0f, 1f,
+            1f, 1f,
+            0f, 0f,
+            1f, 0f,
+        )
+
+        private fun nativeOrderFloatBuffer(vararg array: Float): FloatBuffer {
+            val buf = ByteBuffer.allocateDirect(array.size * 4).apply {
+                order(ByteOrder.nativeOrder())
+            }.asFloatBuffer()
+            buf.put(array)
+            buf.position(0)
+            return buf
+        }
+
+        private val vertexShader = """
+attribute vec4 aPosition;
+attribute vec2 aCoordinate;
+varying vec2 vCoordinate;
+void main() {
+    gl_Position = aPosition;
+    vCoordinate = aCoordinate;
+}
+        """.trimIndent()
+
+        private val fragmentShader = """
+#extension GL_OES_EGL_image_external : require
+varying vec2 vCoordinate;
+uniform samplerExternalOES uTexture;
+void main() {
+    vec4 color = texture2D(uTexture, vCoordinate);
+    gl_FragColor = vec4(color.r, color.g, color.b, 1.0);
+}
+        """.trimIndent()
+
+        private data class Attrib(
+            val program: Int,
+            val aPosition: Int,
+            val aCoordinate: Int,
+            val uTexture: Int,
+        )
+
+        private val attrib by lazy {
+            initProgram()
+        }
 
         @Volatile
         private var isPlaying = false
@@ -586,16 +643,91 @@ class CodecPlayerHelperController<T : AVSupport<T>>(
         override fun close() {
         }
 
-        fun onDrawFrame(gl: GL10?) {
+        fun onDrawFrame() {
             if (!isPlaying) {
                 return
             }
             GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT or GLES20.GL_DEPTH_BUFFER_BIT)
             checkGlError()
+            synchronized(this) {
+                val textureItem = textureItem ?: return
+                performDraw(textureItem)
+            }
+        }
+
+        private fun performDraw(textureItem: TextureItem) {
+            GLES20.glUseProgram(attrib.program)
+            checkGlError()
+
+            GLES20.glActiveTexture(GLES20.GL_TEXTURE0)
+            checkGlError()
+
+            GLES20.glBindTexture(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, textureItem.id)
+            checkGlError()
+
+            GLES20.glUniform1i(attrib.uTexture, 0)
+            checkGlError()
+
+            GLES20.glTexParameterf(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MIN_FILTER, GLES20.GL_NEAREST.toFloat())
+            checkGlError()
+            GLES20.glTexParameterf(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MAG_FILTER, GLES20.GL_LINEAR.toFloat())
+            checkGlError()
+            GLES20.glTexParameterf(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_WRAP_S, GLES20.GL_REPEAT.toFloat())
+            checkGlError()
+            GLES20.glTexParameterf(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_WRAP_T, GLES20.GL_REPEAT.toFloat())
+            checkGlError()
+
+            textureItem.texture.updateTexImage()
+
+            GLES20.glEnableVertexAttribArray(attrib.aPosition)
+            checkGlError()
+            GLES20.glEnableVertexAttribArray(attrib.aCoordinate)
+            checkGlError()
+
+            GLES20.glVertexAttribPointer(attrib.aPosition, 2, GLES20.GL_FLOAT, false, 0, vertexCoods)
+            checkGlError()
+            GLES20.glVertexAttribPointer(attrib.aCoordinate, 2, GLES20.GL_FLOAT, false, 0, textureCoods)
+            checkGlError()
+
+            GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP, 0, 4)
+            checkGlError()
+        }
+
+        private fun initProgram(): Attrib {
+            val program = GLES20.glCreateProgram()
+            checkGlError()
+            GLES20.glAttachShader(program, initShader(GLES20.GL_VERTEX_SHADER, vertexShader))
+            checkGlError()
+            GLES20.glAttachShader(program, initShader(GLES20.GL_FRAGMENT_SHADER, fragmentShader))
+            checkGlError()
+            GLES20.glLinkProgram(program)
+            checkGlError()
+            val aPosition = GLES20.glGetAttribLocation(program, "aPosition")
+            checkGlError()
+            val aCoordinate = GLES20.glGetAttribLocation(program, "aCoordinate")
+            checkGlError()
+            val uTexture = GLES20.glGetUniformLocation(program, "uTexture")
+            checkGlError()
+            return Attrib(
+                program = program,
+                aPosition = aPosition,
+                aCoordinate = aCoordinate,
+                uTexture = uTexture,
+            )
+        }
+
+        private fun initShader(type: Int, code: String): Int {
+            val shader = GLES20.glCreateShader(type)
+            checkGlError()
+            GLES20.glShaderSource(shader, code)
+            checkGlError()
+            GLES20.glCompileShader(shader)
+            checkGlError()
+            return shader
         }
     }
 
-    override fun onDrawFrame(gl: GL10?) {
-        (renders.getOrNull(viewStreamIndex) as? CodecPlayerHelperController<*>.VideoRender)?.onDrawFrame(gl)
+    override fun onDrawFrame() {
+        (renders.getOrNull(viewStreamIndex) as? VideoRender)?.onDrawFrame()
     }
 }

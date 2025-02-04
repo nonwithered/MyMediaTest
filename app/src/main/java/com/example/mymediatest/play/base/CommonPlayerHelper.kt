@@ -22,6 +22,7 @@ import com.example.shared.utils.logI
 import com.example.shared.utils.mainScope
 import com.example.shared.utils.systemService
 import com.example.shared.view.gl.GLTextureView
+import com.example.shared.view.gl.checkGlError
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -92,7 +93,7 @@ class CommonPlayerHelper(
 
         abstract fun pause()
 
-        open fun onDrawFrame(gl: GL10?) = Unit
+        open fun onDrawFrame() = Unit
     }
 
     data class TextureItem(
@@ -405,21 +406,25 @@ class CommonPlayerHelper(
     }
 
     override fun onSurfaceCreated(gl: GL10?, config: EGLConfig?) {
-        initTextureCache()
+        initTextureCache(gl)
     }
 
     override fun onSurfaceChanged(gl: GL10?, width: Int, height: Int) {
         surfaceSize = width to height
+        gl ?: return
         GLES20.glViewport(0, 0, width, height)
+        checkGlError()
     }
 
     override fun onDrawFrame(gl: GL10?) {
-        controller?.onDrawFrame(gl)
+        controller?.onDrawFrame()
     }
 
-    private fun initTextureCache() {
+    private fun initTextureCache(gl: GL10?) {
+        gl ?: return
         val array = IntArray(factory.textureCacheSize)
         GLES20.glGenTextures(array.size, array, 0)
+        checkGlError()
         array.forEach { id ->
             val texture = SurfaceTexture(id)
             val surface = Surface(texture)
