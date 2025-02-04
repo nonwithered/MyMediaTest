@@ -7,11 +7,10 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.asCoroutineDispatcher
+import kotlinx.coroutines.android.asCoroutineDispatcher
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
-import java.util.concurrent.Executor
 import java.util.concurrent.locks.Lock
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
@@ -22,21 +21,12 @@ val mainScope: CoroutineScope by lazy {
     CoroutineScope(SupervisorJob() + Dispatchers.Main)
 }
 
-val Handler.asExecutor: Executor
-    get() = Executor { r ->
-        runCatching {
-            post(r)
-        }.onFailure { e ->
-            TAG.logW(e) { "post $r" }
-        }
-    }
-
 private val HandlerThread.asCoroutineContext: CoroutineContext
     get() {
         if (!isAlive) {
             start()
         }
-        return Handler(looper).asExecutor.asCoroutineDispatcher() + SupervisorJob() + CoroutineName(name)
+        return Handler(looper).asCoroutineDispatcher() + SupervisorJob() + CoroutineName(name)
     }
 
 val HandlerThread.asCoroutineScope: CoroutineScope

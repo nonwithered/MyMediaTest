@@ -3,7 +3,6 @@ package com.example.mymediatest.play
 import android.media.AudioFormat
 import android.media.AudioManager
 import android.media.AudioTrack
-import android.opengl.EGL14
 import android.opengl.GLES11Ext
 import android.opengl.GLES20
 import android.os.HandlerThread
@@ -25,7 +24,6 @@ import com.example.shared.utils.logD
 import com.example.shared.utils.onDispose
 import com.example.shared.utils.setValue
 import com.example.shared.view.gl.checkGlError
-import com.example.shared.view.gl.throwEglException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.channels.BufferOverflow
@@ -632,24 +630,22 @@ void main() {
         private var isPlaying = false
 
         @Volatile
-        private var textureItem: TextureItem? = null
+        private var currentBuffer: FrameBuffer<T>? = null
 
-        private fun updateTextureItem(item: TextureItem?) {
-            synchronized(this) {
-                textureItem?.let {
-                    params.textureCache.trySend(it)
-                }
-                textureItem = item
+        private fun updateBuffer(buffer: FrameBuffer<T>?) {
+            currentBuffer?.textureItem?.let {
+                params.textureCache.trySend(it)
             }
+            currentBuffer = buffer
         }
 
         override fun onRender(
             buffer: FrameBuffer<T>,
-        ): Int {
+        ): Int = synchronized(this) {
             val frame = buffer.frame ?: return 0
             val bytes = frame.bytes()
             val offset = frame.offset()
-            updateTextureItem(buffer.textureItem)
+            updateBuffer(buffer)
             return bytes.size - offset
         }
 
@@ -671,12 +667,15 @@ void main() {
             GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT or GLES20.GL_DEPTH_BUFFER_BIT)
             checkGlError()
             synchronized(this) {
-                val textureItem = textureItem ?: return
-                performDraw(textureItem)
+                performDraw(currentBuffer)
             }
         }
 
-        private fun performDraw(textureItem: TextureItem) {
+        private fun performDraw(buffer: FrameBuffer<T>?) {
+            val textureItem = buffer?.textureItem ?: return
+
+            TAG.logD { "performDraw ${buffer.frame?.pts()}" }
+
             GLES20.glUseProgram(attrib.program)
             checkGlError()
 
