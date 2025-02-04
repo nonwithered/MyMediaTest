@@ -29,6 +29,7 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.yield
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
@@ -89,8 +90,8 @@ class CodecPlayerHelperController<T : AVSupport<T>>(
     )
 
     private val formatContext = open(
-        context,
-        uri,
+        context = context,
+        uri = uri,
     )
 
     private val decodeScope = HandlerThread("$TAG-decode").also {
@@ -118,6 +119,10 @@ class CodecPlayerHelperController<T : AVSupport<T>>(
         it.mime().isAudio
     }
 
+    private val viewStreamIndex = streams.indexOfFirst {
+        it.mime().isVideo
+    }
+
     private var playTask: Job? = null
     private var playPauseTask: Job? = null
     private var playStartTask: Job? = null
@@ -139,12 +144,21 @@ class CodecPlayerHelperController<T : AVSupport<T>>(
         get() = playPosition.coerceAtLeast(0)
 
     private var decodeTask = decodeScope.launch {
-        listener.onPrepared(0 to 0)
         performDecode()
     }
 
     private val elapsedRealtime: Long
         get() = SystemClock.elapsedRealtime()
+
+    init {
+        val size = if (viewStreamIndex < 0) {
+            0 to 0
+        } else {
+            val stream = streams[viewStreamIndex]
+            stream.width()!! to stream.height()!!
+        }
+        listener.onPrepared(size)
+    }
 
     override fun seekTo(pos: Long) {
         TAG.logD { "seekTo $pos" }
@@ -226,16 +240,24 @@ class CodecPlayerHelperController<T : AVSupport<T>>(
     }
 
     override fun close() {
-        playScope.launch {
+        if (isPlaying) {
+            performPause()
+        }
+        val closePlayJob = playScope.launch {
+            playPauseTask?.join()
             renders.forEach {
                 it.close()
             }
         }
         playScope.cancel()
-        decodeScope.launch {
+        val closeDecodeJob = decodeScope.launch {
+            closePlayJob.join()
             formatContext.close()
         }
         decodeScope.cancel()
+        runBlocking {
+            closeDecodeJob.join()
+        }
     }
 
     private fun createRenderer(stream: AVStream<T>): Renderer {

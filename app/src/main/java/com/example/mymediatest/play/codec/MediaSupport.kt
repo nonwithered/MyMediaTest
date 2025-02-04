@@ -66,6 +66,16 @@ object MediaSupport : AVSupport<MediaSupport> {
         return stream.info.pcmEncoding
     }
 
+    override fun AVStream<MediaSupport>.width(): Int? {
+        val stream = this as MediaStream
+        return stream.info.width
+    }
+
+    override fun AVStream<MediaSupport>.height(): Int? {
+        val stream = this as MediaStream
+        return stream.info.height
+    }
+
     override fun AVFormatContext<MediaSupport>.seek(t: TimeStamp) {
         val formatContext = this as MediaFormatContext
         formatContext.seek(t)

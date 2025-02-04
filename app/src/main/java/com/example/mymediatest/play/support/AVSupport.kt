@@ -27,6 +27,10 @@ interface AVSupport<T : AVSupport<T>> {
 
     fun AVStream<T>.pcmEncoding(): Int?
 
+    fun AVStream<T>.width(): Int?
+
+    fun AVStream<T>.height(): Int?
+
     fun AVFormatContext<T>.seek(t: TimeStamp)
 
     fun AVFormatContext<T>.read(stream: AVStream<T>): AVPacket<T>?

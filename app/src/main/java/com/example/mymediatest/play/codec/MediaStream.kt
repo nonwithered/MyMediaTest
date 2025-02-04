@@ -22,6 +22,8 @@ class MediaStream(
         var sampleRate: Int? by MediaFormat.KEY_SAMPLE_RATE.property()
         var channelCount: Int? by MediaFormat.KEY_CHANNEL_COUNT.property()
         var pcmEncoding: Int? by MediaFormat.KEY_PCM_ENCODING.property()
+        var width: Int? by MediaFormat.KEY_WIDTH.property()
+        var height: Int? by MediaFormat.KEY_HEIGHT.property()
     }
 
     val info = TrackInfo(format)

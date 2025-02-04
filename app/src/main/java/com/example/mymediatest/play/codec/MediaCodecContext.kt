@@ -20,6 +20,7 @@ class MediaCodecContext(
     }
 
     override fun close() {
+        codec.flush()
         codec.stop()
         codec.release()
     }
