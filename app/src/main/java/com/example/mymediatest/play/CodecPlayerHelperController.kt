@@ -400,40 +400,39 @@ class CodecPlayerHelperController<T : AVSupport<T>>(
                 TAG.logD { "performDecode $index textureCache.receive end" }
                 item
             }
-            val frame = stream.decoder().receive(textureItem?.surface)
-            val ptsMs = frame?.ptsMs
-            TAG.logD { "performDecode $index frame receive $mime eosState=$eosState ptsMs=$ptsMs lastPts=$lastPts lastTime=$lastTime curTime=$curTime" }
-            val eos = if (ptsMs === null) {
-                eosState && lastTime != Long.MIN_VALUE && lastTime + 100 < curTime
-            } else {
-                frame.eos()
-            }
-            val reuseTexture = suspend {
-                if (textureItem !== null) {
-                    TAG.logD { "performDecode $index textureCache.send begin" }
-                    textureCache?.send(textureItem)
-                    TAG.logD { "performDecode $index textureCache.send end" }
+            var needReuse = true
+            try {
+                val frame = stream.decoder().receive(textureItem?.surface)
+                val ptsMs = frame?.ptsMs
+                TAG.logD { "performDecode $index frame receive $mime eosState=$eosState ptsMs=$ptsMs lastPts=$lastPts lastTime=$lastTime curTime=$curTime" }
+                val eos = if (ptsMs === null) {
+                    eosState && lastTime != Long.MIN_VALUE && lastTime + 100 < curTime
+                } else {
+                    frame.eos()
+                }
+                if (eos) {
+                    bufferChannel.send(FrameBuffer(
+                        frame = null,
+                        textureItem = null,
+                    ))
+                    TAG.logD { "performDecode $index frame eos $mime $ptsMs" }
+                    return true
+                }
+                if (ptsMs === null || ptsMs <= lastPts) {
+                    break
+                }
+                lastPts = ptsMs
+                lastTime = curTime
+                bufferChannel.send(FrameBuffer(
+                    frame = frame,
+                    textureItem = textureItem,
+                ))
+                needReuse = false
+            } finally {
+                if (needReuse && textureItem !== null) {
+                    textureCache?.trySend(textureItem)
                 }
             }
-            if (eos) {
-                reuseTexture()
-                bufferChannel.send(FrameBuffer(
-                    frame = null,
-                    textureItem = null,
-                ))
-                TAG.logD { "performDecode $index frame eos $mime $ptsMs" }
-                return true
-            }
-            if (ptsMs === null || ptsMs <= lastPts) {
-                reuseTexture()
-                break
-            }
-            lastPts = ptsMs
-            lastTime = curTime
-            bufferChannel.send(FrameBuffer(
-                frame = frame,
-                textureItem = textureItem,
-            ))
         }
         return false
     }
