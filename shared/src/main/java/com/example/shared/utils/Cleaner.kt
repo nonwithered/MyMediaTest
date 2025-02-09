@@ -4,6 +4,9 @@ import java.lang.ref.PhantomReference
 import java.lang.ref.ReferenceQueue
 import java.util.concurrent.Executors
 
+/**
+ * @see java.lang.ref.Cleaner
+ */
 class Cleaner(
     name: String
 ) : AutoCloseable {
@@ -70,6 +73,9 @@ class Cleaner(
 
     companion object {
 
+        /**
+         * @see jdk.internal.ref.CleanerFactory.cleaner
+         */
         val common = Cleaner("Common")
 
         private val defaultThreadFactory = Executors.defaultThreadFactory()
